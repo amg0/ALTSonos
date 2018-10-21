@@ -5,7 +5,7 @@
 tbd
 
 ### Functionality
-tbd
+users Sonos Cloud to discover and control the Sonos players of your households
 To program actions in scenes, you use the UPNP commands in the advanced scene editor of UI7 or ALTUI.
 
 ### Cost
@@ -41,4 +41,6 @@ a group can have multiple players
 tbd
 
 ### Installation
-tbd
+Warning this plugin requires :
+- a google cloud function ( code in CloudFunction folder ) 
+- a client ID, client secret registration to Sonos developper portal
