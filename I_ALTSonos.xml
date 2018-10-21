@@ -17,7 +17,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Discover</name>
 			<job>
-			discoverHouseholds(lul_device)
+			syncDevices(lul_device)
 			return 4,0
 			</job>
 		</action>	         

@@ -358,11 +358,6 @@ local function setDebugMode(lul_device,newDebugMode)
   end
 end
 
-local function discoverHouseholds(lul_device)
-  debug(string.format("discoverHouseholds(%s)",lul_device))
-  lul_device = tonumber(lul_device)
-  getHouseholds(lul_device)
-end
 ------------------------------------------------------------------------------------------------
 -- Http handlers : Communication FROM ALTUI
 -- http://192.168.1.5:3480/data_request?id=lr_ALTUI_Handler&command=xxx
@@ -444,7 +439,7 @@ function startupDeferred(lul_device)
 
 	lul_device = tonumber(lul_device)
 	local ip = getIP()
-	local iconCode = getSetVariable(ALTSonos_SERVICE,"IconCode", lul_device, "0")
+	local iconCode = luup.variable_set(ALTSonos_SERVICE, "IconCode", 0, lul_device)
 	local debugmode = getSetVariable(ALTSonos_SERVICE, "Debug", lul_device, "0")	
 	local oldversion = getSetVariable(ALTSonos_SERVICE, "Version", lul_device, version)
 	local authurl = string.format("http://%s/port_3480/data_request?id=lr_DENON_Handler&command=AuthorizationCB&DeviceNum=%s",ip,lul_device)
