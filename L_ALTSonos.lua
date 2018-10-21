@@ -295,6 +295,8 @@ local function refreshToken( lul_device )
 	debug(string.format("refreshToken(%s)",lul_device))
 	lul_device = tonumber(lul_device)
 
+	local ALTSONOS_KEY = getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
+	local ALTSONOS_SECRET = getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
 	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
 	local refresh_token = luup.variable_get(ALTSonos_SERVICE, "RefreshToken", lul_device)
 	local body = string.format('grant_type=refresh_token&refresh_token=%s',refresh_token)
@@ -306,8 +308,11 @@ end
 local function onAuthorizationCallback( lul_device, AuthCode) 
 	debug(string.format("onAuthorizationCallback(%s,%s)",lul_device,AuthCode))
 	lul_device = tonumber(lul_device)
+
 	luup.variable_set(ALTSonos_SERVICE, "AuthCode", AuthCode, lul_device)
 	local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
+	local ALTSONOS_KEY = getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
+	local ALTSONOS_SECRET = getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
 	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
 	local uri = modurl.escape( cfauth )
 	local body = string.format('grant_type=authorization_code&code=%s&redirect_uri=%s',AuthCode,uri)
@@ -392,6 +397,7 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 		["GetAppInfo"] = 
 			function(params)
 				local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
+				local ALTSONOS_KEY = luup.variable_get(ALTSonos_SERVICE, "ALTSonosKey", lul_device)
 				return json.encode( { ip=getIP(), altsonos_key=ALTSONOS_KEY, proxy=cfauth } ),"application/json"
 			end,
 		["AuthorizationCB"] = 
@@ -446,6 +452,8 @@ function startupDeferred(lul_device)
 	getSetVariable(ALTSonos_SERVICE, "VeraOAuthCBUrl", lul_device, authurl)
 	local cfauthurl = ""
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device, cfauthurl)
+	getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
+	getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
 
 		
 	if (debugmode=="1") then

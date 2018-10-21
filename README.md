@@ -45,3 +45,20 @@ tbd
 Warning this plugin requires :
 - a google cloud function ( code in CloudFunction folder ) 
 - a client ID, client secret registration to Sonos developper portal
+#### Google Cloud Function
+1. Create a google account if required
+2. go to google cloud console
+3. create a project
+4. Select Cloud Function in the top left hamburger menu
+5. Create a new cloud function with the code in the CloudFunction folder
+
+#### Registration of the Application in Sonos developper portal
+1. Create a Sonos developper account https://developer.sonos.com/
+2. Go to Integration / create a new integration
+3. Enter name , go next until you reach the screen with the Key and Secret ; copied them down
+4. Click Add a redirect URL and enter your google cloud function http trigger url
+
+#### Configuration of the ALT Sonos plugin in settings tab
+1. Enter the Key and the secret in the settings field
+2. Enter the Cloud Function trigger http url in the field
+

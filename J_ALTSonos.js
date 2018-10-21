@@ -44,6 +44,8 @@ var ALTSonos = (function(api,$) {
 	// <input type="text" class="form-control" id="altsonos-ipaddr" placeholder="ip address" required=""  pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" value="" >	
 	function ALTSonos_Settings(deviceID) {
 		var configs = [
+			{ label:'ALTSonosKey', id:'ALTSonosKey', service:ALTSonos.SERVICE , required:true},
+			{ label:'ALTSonosSecret', id:'ALTSonosSecret', service:ALTSonos.SERVICE , required:true},
 			{ label:'CloudFunctionAuthUrl', id:'CloudFunctionAuthUrl', service:ALTSonos.SERVICE , required:true},
 			{ label:'VeraOAuthCBUrl', id:'VeraOAuthCBUrl', service:ALTSonos.SERVICE, readonly:true },
 			{ label:'AccessToken', id:'AccessToken', service:ALTSonos.SERVICE },
