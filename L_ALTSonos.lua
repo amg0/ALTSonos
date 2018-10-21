@@ -428,10 +428,6 @@ local function startEngine(lul_device)
 	return syncDevices(lul_device)
 end
 
-function registerHandlers(lul_device)
-	luup.register_handler("myALTSonos_Handler","ALTSonos_Handler")
-end
-
 function startupDeferred(lul_device)
 	log("startupDeferred, called on behalf of device:"..lul_device)
 
@@ -474,7 +470,7 @@ function startupDeferred(lul_device)
 		luup.variable_set(ALTSonos_SERVICE, "Version", version, lul_device)
 	end
 
-	registerHandlers(lul_device)
+	luup.register_handler("myALTSonos_Handler","ALTSonos_Handler")
 	local success = startEngine(lul_device)
 	log("startup completed")
 end

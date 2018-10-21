@@ -9,11 +9,13 @@ For now, it discovers the housholds, groups and players and store the result in 
 To program actions in scenes, you use the UPNP commands in the advanced scene editor of UI7 or ALTUI.
 
 ### Cost
-not authorized for resell or commercial usage
+free during the dev phase
+in any cases, not authorized for reseller or commercial usage
 
 ### Versions
 - 0.1 : initial release
 - 0.2 : Discovery working
+- 0.3 : Parametrized installation with cloud function and customer specific App Key
 
 ### UI
 tbd
