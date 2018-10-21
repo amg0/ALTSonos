@@ -9,7 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 
 //-------------------------------------------------------------
-// DENON  Plugin javascript Tabs
+// ALTSonos  Plugin javascript Tabs
 //-------------------------------------------------------------
 
 var ALTSonos_myapi = window.api || null
@@ -45,19 +45,8 @@ var ALTSonos = (function(api,$) {
 	function ALTSonos_Settings(deviceID) {
 		var ip_address = jsonp.ud.devices[findDeviceIdx(deviceID)].ip;
 		var html =
-		'                                                           \
-		  <div id="altsonos-settings">                                           \
-			<form novalidate action="javascript:void(0);" class="row" id="altsonos-settings-form">                        \
-				<div class="form-group col-6 col-xs-6">																	\
-					<label for="altsonos-ipaddr">IP Addr</label>		\
-					<input type="text" class="form-control" id="altsonos-ipaddr" placeholder="ip address" required=""  value="" >	\
-				</div>																										\
-				<div class="form-group col-6 col-xs-6">																	\
-				</div>																										\
-				<button id="altsonos-submit" type="submit" class="btn btn-default">Submit</button>	\
-			</form>                                                 \
-		  </div>                                                    \
-		'		// api.setCpanelContent(html);
+		'<div>Hello World</div>'
+		// api.setCpanelContent(html);
 		set_panel_html(html);
 		jQuery( "#altsonos-ipaddr" ).val(ip_address);
 		
@@ -82,73 +71,6 @@ var ALTSonos = (function(api,$) {
 			return false;
 		}		
 		jQuery( "#altsonos-settings-form" ).on("submit", _onSave)
-	};
-
-	function ALTSonos_AfterInit(deviceID) {
-		var html= '';
-		function _drawip(deviceID,item){
-			var ip_address = jsonp.ud.devices[findDeviceIdx(deviceID)].ip;
-			return ip_address
-		}
-		function _drawsources(deviceID,item){
-			var testurl = buildHandlerUrl(deviceID,"GetSources",null);
-			
-			// var sources = [
-				// {id:"bd", label:"BD", cmd:"BD"},
-				// {id:"cd", label:"CD", cmd:"CD"},
-				// {id:"cbl", label:"CBL/SAT", cmd:"SAT/CBL"},
-				// {id:"dvd", label:"DVD", cmd:"DVD"},
-				// {id:"dvr", label:"DVR", cmd:"DVR"},
-				// {id:"favorites", label:"FAVORITES", cmd:"FAVORITES"},
-				// {id:"net", label:"NET/USB", cmd:"NET/USB"},
-				// {id:"game", label:"GAME", cmd:"GAME"},
-				// {id:"iradio", label:"IRADIO", cmd:"IRADIO"},
-				// {id:"mplay", label:"MPLAYER", cmd:"MPLAY"},
-				// {id:"phono", label:"PHONO", cmd:"PHONO"},
-				// {id:"server", label:"SERVER", cmd:"SERVER"},
-				// {id:"tuner", label:"TUNER", cmd:"TUNER"},
-				// {id:"tv", label:"TV", cmd:"TV"},
-				// {id:"vcr", label:"VCR", cmd:"VCR"},
-			// ];
-			var html = '<select id="altsonos-selectsrc">'
-			html += '<option value="select">Select source</option>'
-			jQuery.each(item.data, function(i,src) {
-				html += format('<option value="{0}" data-cmd="{2}">{1}</option>',src.id,src.label,src.cmd)
-			})
-			html += '</select>';
-			return html
-		}
-		function _drawlastmsg(deviceID,item){
-			var result = get_device_state(deviceID,  ALTSonos_Svs, 'LastResult',1);
-			return result
-		}
-		
-		function _displaySettings(sources) {
-			var tbl = [
-				{ label:"IP Addr : " , func:_drawip, data:null},
-				{ label:"Source Input :" , func:_drawsources , data:sources},
-				{ label:"Last Message :",func:_drawlastmsg, data:null },
-			]
-			var lines = []
-			jQuery.each(tbl, function(i,item) {
-				var cell = (item.func)(deviceID,item)
-				lines.push( format("<tr><td>{0}</td><td>{1}</td></tr>", item.label , cell ))
-			});
-			
-			html += format(`
-				<table class="table table-bordered table-hover table-sm">
-				  <tbody>
-				  {0}
-				  </tbody>
-				</table>`,lines.join("") ) ;
-			((ALTSonos_myapi) ? (ALTSonos_myapi.setCpanelContent) : (set_panel_html)) (html)
-			jQuery("#cpanel_after_init_container").on("change", "#altsonos-selectsrc", function(e) {
-				var cmd = "SI"+jQuery("#altsonos-selectsrc option:selected").data("cmd")
-				jQuery.get( buildUPnPActionUrl(deviceID,ALTSonos_Svs,"SendCmd",{newCmd:cmd}) )
-			});
-		}
-		
-		$.get( buildHandlerUrl(deviceID,"GetSources",null) ,function(data) { _displaySettings(data.sources) } ) 
 	};
 	
 	//-------------------------------------------------------------
@@ -308,7 +230,6 @@ var ALTSonos = (function(api,$) {
 		ALTSonos_Svs 	: ALTSonos_Svs,
 		format		: format,
 		Settings 	: ALTSonos_Settings,
-		AfterInit	: ALTSonos_AfterInit,
 	}
 	return myModule;
 })(ALTSonos_myapi ,jQuery)
@@ -323,11 +244,7 @@ function ALTSonos_Settings (deviceID) {
 		
 function ALTSonos_Donate(deviceID) {
 	var htmlDonate='<p>Ce plugin est gratuit mais vous pouvez aider l\'auteur par une donation modique qui sera tres appréciée</p><p>This plugin is free but please consider supporting it by a very appreciated donation to the author.</p>';
-	htmlDonate+='<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank"><input type="hidden" name="cmd" value="_donations"><input type="hidden" name="business" value="alexis.mermet@free.fr"><input type="hidden" name="lc" value="FR"><input type="hidden" name="item_name" value="Alexis Mermet"><input type="hidden" name="item_number" value="DENON"><input type="hidden" name="no_note" value="0"><input type="hidden" name="currency_code" value="EUR"><input type="hidden" name="bn" value="PP-DonationsBF:btn_donateCC_LG.gif:NonHostedGuest"><input type="image" src="https://www.paypalobjects.com/en_US/FR/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!"><img alt="" border="0" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1"></form>';
+	htmlDonate+='<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank"><input type="hidden" name="cmd" value="_donations"><input type="hidden" name="business" value="alexis.mermet@free.fr"><input type="hidden" name="lc" value="FR"><input type="hidden" name="item_name" value="Alexis Mermet"><input type="hidden" name="item_number" value="ALTSonos"><input type="hidden" name="no_note" value="0"><input type="hidden" name="currency_code" value="EUR"><input type="hidden" name="bn" value="PP-DonationsBF:btn_donateCC_LG.gif:NonHostedGuest"><input type="image" src="https://www.paypalobjects.com/en_US/FR/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!"><img alt="" border="0" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1"></form>';
 	var html = '<div>'+htmlDonate+'</div>';
 	set_panel_html(html);
-}
-
-function ALTSonos_AfterInit(deviceID) {
-	return ALTSonos.AfterInit(deviceID)
 }

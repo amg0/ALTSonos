@@ -6,12 +6,11 @@
 -- // This program is distributed in the hope that it will be useful,
 -- // but WITHOUT ANY WARRANTY; without even the implied warranty of
 -- // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE .
-local MSG_CLASS		= "ALTSONOS"
+local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
-local POWER_SERVICE	= "urn:upnp-org:serviceId:SwitchPower1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.61"
+local version		= "v0.1"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -19,24 +18,6 @@ local retry_timer = 1/2			-- in mn, retry time
 local json = require("dkjson")
 local socket = require("socket")
 local modurl = require ("socket.url")
-
-local sources = {
-	{id="bd", label="BD", cmd="BD"},
-	{id="cd", label="CD", cmd="CD"},
-	{id="cbl", label="CBL/SAT", cmd="SAT/CBL"},
-	{id="dvd", label="DVD", cmd="DVD"},
-	{id="dvr", label="DVR", cmd="DVR"},
-	{id="favorites", label="FAVORITES", cmd="FAVORITES"},
-	{id="net", label="NET/USB", cmd="NET/USB"},
-	{id="game", label="GAME", cmd="GAME"},
-	{id="iradio", label="IRADIO", cmd="IRADIO"},
-	{id="mplay", label="MPLAYER", cmd="MPLAY"},
-	{id="phono", label="PHONO", cmd="PHONO"},
-	{id="server", label="SERVER", cmd="SERVER"},
-	{id="tuner", label="TUNER", cmd="TUNER"},
-	{id="tv", label="TV", cmd="TV"},
-	{id="vcr", label="VCR", cmd="VCR"}
-}
 
 			
 ------------------------------------------------
@@ -191,7 +172,7 @@ local function UserMessage(text, mode)
 end
 
 ------------------------------------------------
--- Generic Queue
+-- LUA helpers
 ------------------------------------------------
 function tablelength(T)
   local count = 0
@@ -233,150 +214,6 @@ local function Split(str, delim, maxNb)
 	return result
 end
 
-Queue = {
-	new = function(self,o)
-		o = o or {}	  -- create object if user does not provide one
-		setmetatable(o, self)
-		self.__index = self
-		return o
-	end,
-	size = function(self)
-		return tablelength(self)
-	end,
-	push = function(self,e)
-		return table.insert(self,1,e)
-	end,
-	pull = function(self)
-	    local elem = self[1]
-		table.remove(self,1)
-		return elem
-	end,
-	add = function(self,e)
-		return table.insert(self,e)
-	end,
-	removeItem = function(self, idx)
-		table.remove(self,idx)
-	end,
-	getHead = function(self)
-		local elem = self[1]
-		return elem
-	end,
-	list = function(self)
-		local i = 0
-		return function()
-			if (i<#self) then
-				i=i+1
-				return i,self[i]
-			end
-		end
-	end,
-	listReverse = function(self)
-		local i = #self
-		return function()
-			if (i>0) then
-				local j = i
-				i = i-1
-				return j,self[j]
-			end
-		end
-	end,
-}
-------------------------------------------------
--- DENON plugin methods
-------------------------------------------------
-Denon = {
-	new = function(self,ipaddr)
-	  debug(string.format("Denon:new(%s)",ipaddr))
-		o = {
-			ipaddr = ipaddr,
-			port = 23,
-			socket = nil,
-		}
-		setmetatable(o, self)
-		self.__index = self
-		return o
-	end,
-	
-	receive = function(self)
-		debug(string.format("Denon:receive()"))
-		local result, err = nil, nil
-		if (self.socket == nil) then
-		    error(string.format("socket not connected"))
-		else
-		    local c = 1
-			while (c~='\r') do
-				c,err = self.socket:receive("1")
-				-- debug( string.format("char : %s %s",c or '',err or '' ) )
-				if (c==nil) then
-					break
-				end
-				if (c~='\r') then
-					result = (result or '')..c
-				end
-			end
-		end
-		-- debug(string.format("Denon:receive() => %s",result or 'nil'))
-        return result, err		
-	end,
-	
-	connect = function(self)
-		debug(string.format("Denon:connect()"))
-		local result, err = nil, nil
-		if ( self.socket == nil ) then
-			self.socket, err = socket.tcp()
-			if (self.socket~=nil) then
-				self.socket:settimeout(2)
-				result, err = self.socket:connect(self.ipaddr, self.port)
-				if (result==nil) then
-					self.socket:close()
-					self.socket = nil
-				end
-			end
-		end
-		--debug( result,err )
-		return result,err
-	end,
-	
-	disconnect = function(self)
-		debug(string.format("Denon:disconnect()"))
-		if (self.socket ~= nil) then
-			self.socket:shutdown('both')
-			self.socket:close()
-			self.socket = nil
-		end
-		return nil
-	end,
-	
-	send = function(self,cmd)
-		debug(string.format("Denon:send( %s )",cmd))
-		local result, err = nil, nil
-		if (self.socket == nil) then
-		    error(string.format("socket not connected"))
-		else
-		    result,err = self.socket:send( cmd .. "\r" )
-		end
-		--debug( result,err )
-		return result,err
-	end,
-	
-	command = function(self,cmd)
-		debug(string.format("Denon:command( %s )",cmd))
-		local result, err = self:send(cmd)
-        if (result==nil) then
-            return nil,err
-        end
-		
-		local result_cmds = {}
-        while (result~=nil) do
-            result,err = self:receive()
-            --debug( result,err )
-            if (result~=nil) then
-                table.insert(result_cmds,result)
-            end
-        end
-		return result_cmds,err
-	end,
-}
 
 ------------------------------------------------
 -- UPNP Actions Sequence
@@ -424,13 +261,9 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 
 	-- switch table
 	local action = {
-		["GetSources"] =
-			function(params)
-				return json.encode({ ["sources"]=sources }), "application/json"
-			end,
 		["default"] =
 			function(params)
-				return "not successful", "text/plain"
+				return "Default Handler", "text/plain"
 			end
 	}
 	
@@ -440,113 +273,9 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 	return (lul_html or "") , mime_type
 end
 
--------------------------------------------------
---- connect
---- send multiple commands separated by , ( CSV )
---- receives output
---- store result in LastResult variable ( CSV )
---- disconnect
--------------------------------------------------
-local function updateDevice(lul_device,success,results)
-
-	setVariableIfChanged(ALTSonos_SERVICE, "IconCode", success and "100" or "0", lul_device)
-
-	if (results~=nil) then
-		luup.variable_set(ALTSonos_SERVICE, "LastResult", results , lul_device)
-	end
-
-	if (success==false) then
-		retry_timer = math.min( 2*retry_timer, 60 )
-	else
-		retry_timer=1
-	end
-
-	if( luup.version_branch == 1 and luup.version_major == 7) then
-		if (success == true) then
-			luup.set_failure(0,lul_device)  -- should be 0 in UI7
-		else
-			luup.set_failure(1,lul_device)  -- should be 0 in UI7
-		end
-	else
-		luup.set_failure(success,lul_device)	-- should be 0 in UI7
-	end
-end
-
-local function processResult(lul_device,tblResult)
-	debug(string.format("processResult(%s,%s)",lul_device,json.encode(result)))
-	for k,result in pairs(tblResult) do
-		if (result=="PWON") then
-			setVariableIfChanged(POWER_SERVICE, "Status", "1", lul_device)
-		elseif (result=="PWSTANDBY") then
-			setVariableIfChanged(POWER_SERVICE, "Status", "0", lul_device)
-		end
-	end
-end
-
-local function sendCmd(lul_device,newCmd)
-	local res=false
-	lul_device = tonumber(lul_device)
-	newCmd = newCmd or ""
-	local ipaddr = luup.attr_get ('ip', lul_device )
-	debug(string.format("sendCmd(%s,%s) to %s",lul_device,newCmd,ipaddr or ""))
-	if (isempty(ipaddr) == false) then
-		local d = Denon:new(ipaddr)
-		local result,err = d:connect()
-		if (result~=nil) then
-			local tblResults={}
-			local parts = Split(newCmd, ",")
-			luup.variable_set(ALTSonos_SERVICE, "LastResult", "", lul_device)
-			for k,cmd in pairs(parts) do
-				--uudecode
-				cmd = modurl.unescape( cmd )
-				result,err = d:command(cmd) 
-				if (result~=nil) then
-					debug(string.format("send command %s to %s received result: %s",cmd,ipaddr,json.encode(result)))
-					processResult(lul_device,result)
-					tableadd(tblResults,result)
-					res=true
-				else
-					warning(string.format("could not send command %s to %s",cmd,ipaddr))
-				end
-			end
-			updateDevice(lul_device,true,table.concat(tblResults,","))
-		else
-			warning(string.format("could not connect to %s",ipaddr))
-			updateDevice(lul_device,false)
-		end
-		d:disconnect()
-	end
-	return res
-end
-
-local function setMute(lul_device,MuteOn)
-	debug(string.format("setMute(%s,%s)",lul_device,MuteOn))
-	return sendCmd(lul_device,(MuteOn=="1") and "MUON" or "MUOFF")
-end
-
-------------------------------------------------
--- UPNP actions Sequence
-------------------------------------------------
-function isOnline(lul_device)
-	debug(string.format("isOnline(%s)",lul_device))
-	local result = false
-	lul_device = tonumber(lul_device)
-	local ipaddr = luup.attr_get ('ip', lul_device )
-	if (isempty(ipaddr) == false) then
-		result = sendCmd(lul_device,"PW?")
-	else
-		UserMessage("please add ip address in the ip attribute and reload "..lul_device,TASK_ERROR_PERM)
-	end
-	updateDevice(lul_device,result)
-	luup.call_delay("isOnline", 60 * retry_timer, lul_device)
-	return result
-end
-
 local function startEngine(lul_device)
 	debug(string.format("startEngine(%s)",lul_device))
-	local res,err = nil,''
-	lul_device = tonumber(lul_device)
-	return isOnline(lul_device)
+	return false
 end
 
 function registerHandlers(lul_device)
@@ -560,7 +289,6 @@ function startupDeferred(lul_device)
 	local iconCode = getSetVariable(ALTSonos_SERVICE,"IconCode", lul_device, "0")
 	local debugmode = getSetVariable(ALTSonos_SERVICE, "Debug", lul_device, "0")	
 	local oldversion = getSetVariable(ALTSonos_SERVICE, "Version", lul_device, version)
-	luup.variable_set(ALTSonos_SERVICE, "LastResult", "", lul_device)
 	local status = getSetVariable(POWER_SERVICE, "Status", lul_device, "0")
 		
 	if (debugmode=="1") then

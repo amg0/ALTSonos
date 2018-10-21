@@ -1,12 +1,12 @@
 {
-  "flashicon": "https://cdn.rawgit.com/amg0/ALTSonos/f2cfff6f/iconALTSonos.png",
-  "default_icon": "https://cdn.rawgit.com/amg0/ALTSonos/f2cfff6f/iconALTSonos.png",
+  "flashicon": "https://raw.githubusercontent.com/amg0/ALTSonos/master/iconALTSonos.png",
+  "default_icon": "https://raw.githubusercontent.com/amg0/ALTSonos/master/iconALTSonos.png",
   "halloIconsDir": "pics\/hallo",
   "state_icons": [
     "iconALTHUE_0.png",
     "iconALTHUE_100.png",
 	{
-		"img": "https://cdn.rawgit.com/amg0/ALTSonos/f2cfff6f/iconALTSonos_0.png",
+		"img": "https://raw.githubusercontent.com/amg0/ALTSonos/master/iconALTSonos_0.png",
 		"conditions": [
 			{
 				"service": "urn:upnp-org:serviceId:altsonos1",
@@ -17,7 +17,7 @@
 		]
 	},
 	{
-		"img": "https://cdn.rawgit.com/amg0/ALTSonos/f2cfff6f/iconALTSonos_100.png",
+		"img": "https://raw.githubusercontent.com/amg0/ALTSonos/master/iconALTSonos_100.png",
 		"conditions": [
 			{
 				"service": "urn:upnp-org:serviceId:altsonos1",
@@ -51,10 +51,6 @@
 		"Position": "1",
 		"TopNavigationTab": "1",
 		"TabType": "flash",
-		"AfterInit": {
-			"ScriptName": "J_ALTUI.js",
-			"Function": "ALTSonos_AfterInit"
-		},
 		"SceneGroup": [
 			{
 				"id": "1",
