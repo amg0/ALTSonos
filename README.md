@@ -35,8 +35,8 @@ tbd
 none
 
 ### Misc Notes
-- a houshold can have multiple groups
-- a group can have multiple players
+- A household is a set of players on the same network under an account. Each household is represented by a household ID. An account can include multiple households. For example, one household may represent an owner’s home system, while another may represent their vacation home system. Sonos creates a household during setup. Users can add and remove players from a household.
+- Sonos players are always in groups, even if the group has only one player. All players in a group play the same audio in synchrony. Users can easily move players from one group to another without interrupting playback. Transport controls, such as play, pause, skip to next track, and skip to previous track, target groups rather than individual players. Players must be part of the same household to be part of a group.
 
 * Special support for ALTUI display
 tbd

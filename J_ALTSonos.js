@@ -78,6 +78,11 @@ var ALTSonos = (function(api,$) {
 			jQuery("#altsonos-"+config.id).val( val );
 		})
 		
+		var online = parseInt(get_device_state(deviceID,  ALTSonos.SERVICE, "IconCode",1));
+		if (online==100) {
+			jQuery("#altsonos-login").hide()
+		}
+		
 		function _onSave(event) {
 			var form = jQuery(this).closest("form")[0]
 			var bValid = form.checkValidity()
