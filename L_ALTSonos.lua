@@ -318,10 +318,7 @@ function startupDeferred(lul_device)
 	end
 
 	registerHandlers(lul_device)
-	
 	local success = startEngine(lul_device)
-	updateDevice(lul_device,success)
-
 	log("startup completed")
 end
 
