@@ -232,19 +232,8 @@ local function getIP()
 end
 
 ------------------------------------------------
--- UPNP Actions Sequence
+-- HTTP Interface
 ------------------------------------------------
-local function setDebugMode(lul_device,newDebugMode)
-  lul_device = tonumber(lul_device)
-  newDebugMode = tonumber(newDebugMode) or 0
-  debug(string.format("setDebugMode(%d,%d)",lul_device,newDebugMode))
-  luup.variable_set(ALTSonos_SERVICE, "Debug", newDebugMode, lul_device)
-  if (newDebugMode==1) then
-	DEBUG_MODE=true
-  else
-	DEBUG_MODE=false
-  end
-end
 
 local function SonosHTTP(lul_device,path,verb,body,b64credential)
 	body = body or ""
@@ -354,6 +343,26 @@ local function getHouseholds(lul_device)
 	return nil
 end
 
+------------------------------------------------
+-- UPNP Actions Sequence
+------------------------------------------------
+local function setDebugMode(lul_device,newDebugMode)
+  lul_device = tonumber(lul_device)
+  newDebugMode = tonumber(newDebugMode) or 0
+  debug(string.format("setDebugMode(%d,%d)",lul_device,newDebugMode))
+  luup.variable_set(ALTSonos_SERVICE, "Debug", newDebugMode, lul_device)
+  if (newDebugMode==1) then
+	DEBUG_MODE=true
+  else
+	DEBUG_MODE=false
+  end
+end
+
+local function discoverHouseholds(lul_device)
+  debug(string.format("discoverHouseholds(%s)",lul_device))
+  lul_device = tonumber(lul_device)
+  getHouseholds(lul_device)
+end
 ------------------------------------------------------------------------------------------------
 -- Http handlers : Communication FROM ALTUI
 -- http://192.168.1.5:3480/data_request?id=lr_ALTUI_Handler&command=xxx

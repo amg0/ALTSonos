@@ -12,39 +12,14 @@
 			setDebugMode(lul_device,lul_settings.newDebugMode)
 			return 4,0
 			</job>
-		</action>
+		</action>	         
 		<action>
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
-			<name>SendCmd</name>
+			<name>Discover</name>
 			<job>
-			sendCmd(lul_device,lul_settings.newCmd)
+			discoverHouseholds(lul_device)
 			return 4,0
 			</job>
-		</action>		         
-		<action>
-			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
-			<name>PowerOn</name>
-			<job>
-			sendCmd(lul_device,"PWON")
-			return 4,0
-			</job>
-		</action>		         
-		<action>
-			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
-			<name>StandBy</name>
-			<job>
-			sendCmd(lul_device,"PWSTANDBY")
-			return 4,0
-			</job>
-		</action>		         
-		<action>
-			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
-			<name>Mute</name>
-			<job>
-			setMute(lul_device,lul_settings.MuteOn)
-			return 4,0
-			</job>
-		</action>		         
-		
+		</action>	         
 	</actionList>
 </implementation>

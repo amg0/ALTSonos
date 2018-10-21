@@ -23,5 +23,8 @@
                 </argument>
             </argumentList>
         </action>
+        <action>
+            <name>Discover</name>
+        </action>
 	</actionList>
 </scpd>
