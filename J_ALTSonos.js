@@ -9,7 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 
 //-------------------------------------------------------------
-// ALTSonos  Plugin javascript Tabs
+// ALTSonos	 Plugin javascript Tabs
 //-------------------------------------------------------------
 
 var ALTSonos_myapi = window.api || null
@@ -53,21 +53,23 @@ var ALTSonos = (function(api,$) {
 		var groups=''
 		jQuery.each(configs, function(idx,config) {
 			groups += `
-				<div class="form-group col-6 col-xs-6">																	\
-					<label for="altsonos-{1}">{0}</label>		\
-					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}">	\
-				</div>																										\
+				<div class="form-group col-6 col-xs-6">
+					<label for="altsonos-{1}">{0}</label>
+					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}">
+				</div>
 			`.format(config.label,config.id)
 		});
-		var html = 		'                                                           \
-		  <div id="altsonos-settings">                                           \
-			<form class="row" id="altsonos-settings-form">                        \
-				{0}																							\
-				<button id="altsonos-submit" type="submit" class="btn btn-default">Submit</button>	\
-			</form>                                                 \
-			<button id="altsonos-login" type="button" class="btn btn-default">Login to Sonos</button>	\
-		  </div>                                                    \
-		'.format( groups )
+		var html =`
+		  <div id="altsonos-settings">
+			<form class="row" id="altsonos-settings-form">
+				{0}	
+				<div class="form-group col-12"> 
+				<button id="altsonos-submit" type="submit" class="btn btn-default">Submit</button>
+				</div>
+			</form>
+			<button id="altsonos-login" type="button" class="btn btn-default">Login to Sonos</button>
+		  </div>
+		`.format( groups )
 
 		// api.setCpanelContent(html);
 		set_panel_html(html);
@@ -97,7 +99,7 @@ var ALTSonos = (function(api,$) {
 			var url = buildHandlerUrl(deviceID,"GetAppInfo")
 			jQuery.get(url, function(data) {
 				var SONOSLOGIN = "https://api.sonos.com/login/v3/oauth?client_id={0}&response_type=code&state={1}&scope=playback-control-all&redirect_uri={2}"
-				var state =  btoa( JSON.stringify( { ip:data.ip , devnum:deviceID } ) )
+				var state =	 btoa( JSON.stringify( { ip:data.ip , devnum:deviceID } ) )
 				var redirect_uri = encodeURIComponent( data.proxy )
 				var url = SONOSLOGIN.format( data.altsonos_key, state, redirect_uri)
 				window.open(url,"_blank")
@@ -146,7 +148,7 @@ var ALTSonos = (function(api,$) {
 	//-------------------------------------------------------------
 	// Variable saving 
 	//-------------------------------------------------------------
-	function saveVar(deviceID,  service, varName, varVal, reload) {
+	function saveVar(deviceID,	service, varName, varVal, reload) {
 		if (service) {
 			set_device_state(deviceID, service, varName, varVal, 0);	// lost in case of luup restart
 		} else {
@@ -261,9 +263,9 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	var myModule = {
-		SERVICE 	: SERVICE,
+		SERVICE		: SERVICE,
 		format		: format,
-		Settings 	: ALTSonos_Settings,
+		Settings	: ALTSonos_Settings,
 	}
 	return myModule;
 })(ALTSonos_myapi ,jQuery)

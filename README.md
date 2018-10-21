@@ -2,10 +2,10 @@
 ## ALTSonos plugin for VERA
 
 ### What does it do
-tbd
+uses Sonos Cloud to discover and control the Sonos players of your households
 
 ### Functionality
-users Sonos Cloud to discover and control the Sonos players of your households
+For now, it discovers the housholds, groups and players and store the result in the device variables.
 To program actions in scenes, you use the UPNP commands in the advanced scene editor of UI7 or ALTUI.
 
 ### Cost
@@ -13,6 +13,7 @@ not authorized for resell or commercial usage
 
 ### Versions
 - 0.1 : initial release
+- 0.2 : Discovery working
 
 ### UI
 tbd
@@ -34,8 +35,8 @@ tbd
 none
 
 ### Misc Notes
-a houshold can have multiple groups
-a group can have multiple players
+- a houshold can have multiple groups
+- a group can have multiple players
 
 * Special support for ALTUI display
 tbd
