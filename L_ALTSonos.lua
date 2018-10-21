@@ -246,10 +246,17 @@ local function setDebugMode(lul_device,newDebugMode)
   end
 end
 
-local function SonosHTTP(lul_device,path,verb,b64credential,body)
-	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s)",lul_device,path,verb,b64credential,body))
-	local url = "https://api.sonos.com" .. path
+local function SonosHTTP(lul_device,path,verb,body,b64credential)
+	body = body or ""
+	if (b64credential==nil) then
+		local token = luup.variable_get(ALTSonos_SERVICE, "AccessToken", lul_device)	
+		b64credential = "Bearer ".. token
+	end
+
+	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or ""))
+	local url = "https://" .. path
 	local verb = verb or "GET"
+	
 	local headers = {
 		["Authorization"] = b64credential,
 		["Content-Length"] = body:len(),
@@ -283,6 +290,8 @@ local function SonosHTTP(lul_device,path,verb,b64credential,body)
 	end
 	
 	-- everything looks good
+	setVariableIfChanged(ALTSonos_SERVICE,"IconCode", 100, lul_device)
+
 	local data = table.concat(result)
 	debug(string.format("response request:%s",request))
 	debug(string.format("code:%s",code))
@@ -301,7 +310,7 @@ local function refreshToken( lul_device )
 	local refresh_token = luup.variable_get(ALTSonos_SERVICE, "RefreshToken", lul_device)
 	local body = string.format('grant_type=refresh_token&refresh_token=%s',refresh_token)
 	
-	local response,msg = SonosHTTP(lul_device,"/login/v3/oauth/access","POST",b64credential,body)
+	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
 	return response,msg
 end
 
@@ -314,13 +323,35 @@ local function onAuthorizationCallback( lul_device, AuthCode)
 	local uri = modurl.escape( CF_AUTH )
 	local body = string.format('grant_type=authorization_code&code=%s&redirect_uri=%s',AuthCode,uri)
 	
-	local response,msg = SonosHTTP(lul_device,"/login/v3/oauth/access","POST",b64credential,body)
+	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
 	if (response ~=nil ) then
 		luup.variable_set(ALTSonos_SERVICE, "RefreshToken", response.refresh_token, lul_device)
 		luup.variable_set(ALTSonos_SERVICE, "AccessToken", response.access_token, lul_device)
 		luup.variable_set(ALTSonos_SERVICE, "ResourceOwner", response.resource_owner, lul_device)
 	end
 	return response,msg
+end
+
+local function getGroups(lul_device, hid )
+	debug(string.format("getGroups(%s,%s)",lul_device,hid))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/groups",hid)
+	local response,msg = SonosHTTP(lul_device,cmd,"GET")
+	if (response ~=nil ) then
+		luup.variable_set(ALTSonos_SERVICE, "Players", json.encode(response.players), lul_device)
+		luup.variable_set(ALTSonos_SERVICE, "Groups", json.encode(response.groups), lul_device)
+		return obj
+	end
+	return nil
+end
+
+local function getHouseholds(lul_device)
+	debug(string.format("getHouseholds(%s)",lul_device))
+	local response,msg = SonosHTTP(lul_device,"api.ws.sonos.com/control/api/v1/households","GET")
+	if (response ~=nil ) then
+		luup.variable_set(ALTSonos_SERVICE, "Households", json.encode(response.households), lul_device)
+		return response.households
+	end
+	return nil
 end
 
 ------------------------------------------------------------------------------------------------
@@ -378,9 +409,20 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 	return (lul_html or "") , mime_type
 end
 
+local function syncDevices(lul_device)
+	local groups=nil
+	local households = getHouseholds(lul_device)
+	debug(string.format("households respoonse = %s",json.encode(households)))
+	if (households~=nil) then
+		local householdid = households[1].id
+		local groups = getGroups(lul_device, householdid)
+	end
+	return (households~=nil) and (groups~=nil)
+end
+
 local function startEngine(lul_device)
 	debug(string.format("startEngine(%s)",lul_device))
-	return false
+	return syncDevices(lul_device)
 end
 
 function registerHandlers(lul_device)
