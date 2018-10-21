@@ -73,7 +73,7 @@ var ALTSonos = (function(api,$) {
 		set_panel_html(html);
 		jQuery.each(configs, function(idx,config) {
 			var val = get_device_state(deviceID,  config.service, config.id,1);
-			jQuery("#"+config.id).val( val );
+			jQuery("#altsonos-"+config.id).val( val );
 		})
 		
 		function _onSave(event) {
@@ -85,7 +85,7 @@ var ALTSonos = (function(api,$) {
 				alert("The form has some invalid values")
 			} else {
 				jQuery.each(configs, function(idx,config) {
-					var val = jQuery("#"+config.id).val();
+					var val = jQuery("#altsonos-"+config.id).val();
 					saveVar(deviceID,  config.service, config.id, val, false)
 				})
 			}
@@ -96,6 +96,7 @@ var ALTSonos = (function(api,$) {
 		function _onLoginRequest(event) {
 			var url = buildHandlerUrl(deviceID,"GetAppInfo")
 			jQuery.get(url, function(data) {
+				var SONOSLOGIN = "https://api.sonos.com/login/v3/oauth?client_id={0}&response_type=code&state={1}&scope=playback-control-all&redirect_uri={2}"
 				var state =  btoa( JSON.stringify( { ip:data.ip , devnum:deviceID } ) )
 				var redirect_uri = encodeURIComponent( data.proxy )
 				var url = SONOSLOGIN.format( data.altsonos_key, state, redirect_uri)
