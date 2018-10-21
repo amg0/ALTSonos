@@ -307,9 +307,9 @@ local function onAuthorizationCallback( lul_device, AuthCode)
 	debug(string.format("onAuthorizationCallback(%s,%s)",lul_device,AuthCode))
 	lul_device = tonumber(lul_device)
 	luup.variable_set(ALTSonos_SERVICE, "AuthCode", AuthCode, lul_device)
-
+	local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
 	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
-	local uri = modurl.escape( CF_AUTH )
+	local uri = modurl.escape( cfauth )
 	local body = string.format('grant_type=authorization_code&code=%s&redirect_uri=%s',AuthCode,uri)
 	
 	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
@@ -396,7 +396,8 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 	local action = {
 		["GetAppInfo"] = 
 			function(params)
-				return json.encode( { ip=getIP(), altsonos_key=ALTSONOS_KEY, proxy=CF_AUTH } ),"application/json"
+				local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
+				return json.encode( { ip=getIP(), altsonos_key=ALTSONOS_KEY, proxy=cfauth } ),"application/json"
 			end,
 		["AuthorizationCB"] = 
 			function(params)
@@ -442,10 +443,15 @@ function startupDeferred(lul_device)
 	log("startupDeferred, called on behalf of device:"..lul_device)
 
 	lul_device = tonumber(lul_device)
+	local ip = getIP()
 	local iconCode = getSetVariable(ALTSonos_SERVICE,"IconCode", lul_device, "0")
 	local debugmode = getSetVariable(ALTSonos_SERVICE, "Debug", lul_device, "0")	
 	local oldversion = getSetVariable(ALTSonos_SERVICE, "Version", lul_device, version)
-	local status = getSetVariable(POWER_SERVICE, "Status", lul_device, "0")
+	local authurl = string.format("http://%s/port_3480/data_request?id=lr_DENON_Handler&command=AuthorizationCB&DeviceNum=%s",ip,lul_device)
+	getSetVariable(ALTSonos_SERVICE, "VeraOAuthCBUrl", lul_device, authurl)
+	local cfauthurl = ""
+	getSetVariable(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device, cfauthurl)
+
 		
 	if (debugmode=="1") then
 		DEBUG_MODE = true

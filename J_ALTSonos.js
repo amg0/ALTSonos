@@ -44,6 +44,8 @@ var ALTSonos = (function(api,$) {
 	// <input type="text" class="form-control" id="altsonos-ipaddr" placeholder="ip address" required=""  pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" value="" >	
 	function ALTSonos_Settings(deviceID) {
 		var configs = [
+			{ label:'CloudFunctionAuthUrl', id:'CloudFunctionAuthUrl', service:ALTSonos.SERVICE , required:true},
+			{ label:'VeraOAuthCBUrl', id:'VeraOAuthCBUrl', service:ALTSonos.SERVICE, readonly:true },
 			{ label:'AccessToken', id:'AccessToken', service:ALTSonos.SERVICE },
 			{ label:'RefreshToken', id:'RefreshToken', service:ALTSonos.SERVICE },
 			{ label:'AuthCode', id:'AuthCode', service:ALTSonos.SERVICE },
@@ -52,12 +54,17 @@ var ALTSonos = (function(api,$) {
 
 		var groups=''
 		jQuery.each(configs, function(idx,config) {
+			var flags=[]
+			if (config.required)
+				flags.push("required")
+			if (config.readonly)
+				flags.push("readonly")
 			groups += `
 				<div class="form-group col-6 col-xs-6">
 					<label for="altsonos-{1}">{0}</label>
-					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}">
+					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}" {2}>
 				</div>
-			`.format(config.label,config.id)
+			`.format(config.label,config.id,flags.join(","))
 		});
 		var html =`
 		  <div id="altsonos-settings">
