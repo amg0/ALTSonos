@@ -18,8 +18,17 @@ local retry_timer = 1/2			-- in mn, retry time
 local json = require("dkjson")
 local socket = require("socket")
 local modurl = require ("socket.url")
+local mime = require("mime")
+local https = require ("ssl.https")
 
-			
+local APPID = "ALTSONOS_KEY"
+local ALTSONOS_KEY = "e9720bf5-83b2-474b-a6fd-a7eb3a27e835"
+local ALTSONOS_SECRET = "211e0fc7-67af-4cc5-a7f6-5928b346e005"
+local CF_AUTH = "https://europe-west1-altui-cloud-function.cloudfunctions.net/SonosAuthorization"
+local CF_EVENT = "https://europe-west1-altui-cloud-function.cloudfunctions.net/SonosEvent"
+local EVENTCB_URL = "http://192.168.1.17/port_3480/data_request?id=lr_DENON_Handler&command=EventCB&DeviceNum=264"
+local AUTHORIZATIONCB_URL = "http://192.168.1.17/port_3480/data_request?id=lr_DENON_Handler&command=AuthorizationCB&DeviceNum=264"		
+
 ------------------------------------------------
 -- Debug --
 ------------------------------------------------
@@ -214,6 +223,13 @@ local function Split(str, delim, maxNb)
 	return result
 end
 
+local function getIP()
+	local mySocket = socket.udp ()
+	mySocket:setpeername ("42.42.42.42", "424242")	-- arbitrary IP/PORT
+	local ip = mySocket:getsockname ()
+	mySocket: close()
+	return ip or "127.0.0.1"
+end
 
 ------------------------------------------------
 -- UPNP Actions Sequence
@@ -228,6 +244,83 @@ local function setDebugMode(lul_device,newDebugMode)
   else
 	DEBUG_MODE=false
   end
+end
+
+local function SonosHTTP(lul_device,path,verb,b64credential,body)
+	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s)",lul_device,path,verb,b64credential,body))
+	local url = "https://api.sonos.com" .. path
+	local verb = verb or "GET"
+	local headers = {
+		["Authorization"] = b64credential,
+		["Content-Length"] = body:len(),
+		["Cache-Control"] =  'no-cache',
+		["Content-Type"] = "application/x-www-form-urlencoded",
+	}
+	debug(string.format("request headers:%s",json.encode(headers)))
+	local result = {}
+	local request, code, headers = https.request({
+		protocol="tlsv1_2",		-- mandatory, otherwise it fails ( and curl works )
+		method=verb,
+		url = url,
+		source= ltn12.source.string(body),
+		headers = headers,
+		sink = ltn12.sink.table(result)
+	})
+	
+	-- fail to connect
+	if (request==nil) then
+		error(string.format("failed to connect to %s, http.request returned nil", url))
+		return nil,"failed to connect"
+	elseif (code==401) then
+		warning(string.format("Access requires a user/password: %d", code))
+		return nil,"unauthorized access - 401"
+	elseif (code==400) then
+		warning(string.format("Invalid client, uri or code: %d", code))
+		return nil,"invalid client- 400"
+	elseif (code~=200) then
+		warning(string.format("https.request returned a bad code: %d", code))
+		return nil,"unvalid return code:" .. code
+	end
+	
+	-- everything looks good
+	local data = table.concat(result)
+	debug(string.format("response request:%s",request))
+	debug(string.format("code:%s",code))
+	debug(string.format("headers:%s",json.encode(headers)))
+	debug(string.format("data:%s",data or ""))
+	
+	local response = json.decode(data)
+	return response,""
+end
+
+local function refreshToken( lul_device )
+	debug(string.format("refreshToken(%s)",lul_device))
+	lul_device = tonumber(lul_device)
+
+	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
+	local refresh_token = luup.variable_get(ALTSonos_SERVICE, "RefreshToken", lul_device)
+	local body = string.format('grant_type=refresh_token&refresh_token=%s',refresh_token)
+	
+	local response,msg = SonosHTTP(lul_device,"/login/v3/oauth/access","POST",b64credential,body)
+	return response,msg
+end
+
+local function onAuthorizationCallback( lul_device, AuthCode) 
+	debug(string.format("onAuthorizationCallback(%s,%s)",lul_device,AuthCode))
+	lul_device = tonumber(lul_device)
+	luup.variable_set(ALTSonos_SERVICE, "AuthCode", AuthCode, lul_device)
+
+	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
+	local uri = modurl.escape( CF_AUTH )
+	local body = string.format('grant_type=authorization_code&code=%s&redirect_uri=%s',AuthCode,uri)
+	
+	local response,msg = SonosHTTP(lul_device,"/login/v3/oauth/access","POST",b64credential,body)
+	if (response ~=nil ) then
+		luup.variable_set(ALTSonos_SERVICE, "RefreshToken", response.refresh_token, lul_device)
+		luup.variable_set(ALTSonos_SERVICE, "AccessToken", response.access_token, lul_device)
+		luup.variable_set(ALTSonos_SERVICE, "ResourceOwner", response.resource_owner, lul_device)
+	end
+	return response,msg
 end
 
 ------------------------------------------------------------------------------------------------
@@ -261,6 +354,18 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 
 	-- switch table
 	local action = {
+		["GetAppInfo"] = 
+			function(params)
+				return json.encode( { ip=getIP(), altsonos_key=ALTSONOS_KEY, proxy=CF_AUTH } ),"application/json"
+			end,
+		["AuthorizationCB"] = 
+			function(params)
+				local code = lul_parameters["code"]
+				local deviceNum = lul_parameters["DeviceNum"]
+				local obj,msg = onAuthorizationCallback( deviceNum, code)
+				debug(string.format("received json: {0}",json.encode(obj)))
+				return  msg .. " You can close the window and return to the ALTSONOS application" , "text/plain" 
+			end,
 		["default"] =
 			function(params)
 				return "Default Handler", "text/plain"

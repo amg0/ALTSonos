@@ -15,7 +15,7 @@
 var ALTSonos_myapi = window.api || null
 var ALTSonos = (function(api,$) {
 	
-	var ALTSonos_Svs = 'urn:upnp-org:serviceId:altsonos1';
+	var SERVICE = 'urn:upnp-org:serviceId:altsonos1';
 	
 	var splits = jQuery.fn.jquery.split(".");
 	var ui5 = (splits[0]=="1" && splits[1]<="5");
@@ -43,12 +43,38 @@ var ALTSonos = (function(api,$) {
 
 	// <input type="text" class="form-control" id="altsonos-ipaddr" placeholder="ip address" required=""  pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" value="" >	
 	function ALTSonos_Settings(deviceID) {
+		var configs = [
+			{ label:'AccessToken', id:'AccessToken', service:ALTSonos.SERVICE },
+			{ label:'RefreshToken', id:'RefreshToken', service:ALTSonos.SERVICE },
+			{ label:'AuthCode', id:'AuthCode', service:ALTSonos.SERVICE },
+		];
 		var ip_address = jsonp.ud.devices[findDeviceIdx(deviceID)].ip;
-		var html =
-		'<div>Hello World</div>'
+
+		var groups=''
+		jQuery.each(configs, function(idx,config) {
+			groups += `
+				<div class="form-group col-6 col-xs-6">																	\
+					<label for="altsonos-{1}">{0}</label>		\
+					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}">	\
+				</div>																										\
+			`.format(config.label,config.id)
+		});
+		var html = 		'                                                           \
+		  <div id="altsonos-settings">                                           \
+			<form class="row" id="altsonos-settings-form">                        \
+				{0}																							\
+				<button id="altsonos-submit" type="submit" class="btn btn-default">Submit</button>	\
+			</form>                                                 \
+			<button id="altsonos-login" type="button" class="btn btn-default">Login to Sonos</button>	\
+		  </div>                                                    \
+		'.format( groups )
+
 		// api.setCpanelContent(html);
 		set_panel_html(html);
-		jQuery( "#altsonos-ipaddr" ).val(ip_address);
+		jQuery.each(configs, function(idx,config) {
+			var val = get_device_state(deviceID,  config.service, config.id,1);
+			jQuery("#"+config.id).val( val );
+		})
 		
 		function _onSave(event) {
 			var form = jQuery(this).closest("form")[0]
@@ -58,19 +84,26 @@ var ALTSonos = (function(api,$) {
 				event.stopPropagation();
 				alert("The form has some invalid values")
 			} else {
-				var ip = jQuery( "#altsonos-ipaddr" ).val();
-				if (goodip(ip)) {
-					saveVar(deviceID,  null, "ip", ip, false)
-					alert('changes are saved')
-				} else {
-					jQuery( "#altsonos-ipaddr" ).addClass("is-invalid").removeClass("is-valid")
-					alert('invalid ip address')
-				}
+				jQuery.each(configs, function(idx,config) {
+					var val = jQuery("#"+config.id).val();
+					saveVar(deviceID,  config.service, config.id, val, false)
+				})
 			}
 			form.classList.add('was-validated');
 			return false;
-		}		
+		}	
+		
+		function _onLoginRequest(event) {
+			var url = buildHandlerUrl(deviceID,"GetAppInfo")
+			jQuery.get(url, function(data) {
+				var state =  btoa( JSON.stringify( { ip:data.ip , devnum:deviceID } ) )
+				var redirect_uri = encodeURIComponent( data.proxy )
+				var url = SONOSLOGIN.format( data.altsonos_key, state, redirect_uri)
+				window.open(url,"_blank")
+			})			
+		}
 		jQuery( "#altsonos-settings-form" ).on("submit", _onSave)
+		jQuery( "#altsonos-login" ).on("click", _onLoginRequest)
 	};
 	
 	//-------------------------------------------------------------
@@ -227,7 +260,7 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	var myModule = {
-		ALTSonos_Svs 	: ALTSonos_Svs,
+		SERVICE 	: SERVICE,
 		format		: format,
 		Settings 	: ALTSonos_Settings,
 	}
