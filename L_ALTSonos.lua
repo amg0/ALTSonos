@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.1"
+local version		= "v0.3"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -19,15 +19,7 @@ local json = require("dkjson")
 local socket = require("socket")
 local modurl = require ("socket.url")
 local mime = require("mime")
-local https = require ("ssl.https")
-
-local APPID = "ALTSONOS_KEY"
-local ALTSONOS_KEY = "e9720bf5-83b2-474b-a6fd-a7eb3a27e835"
-local ALTSONOS_SECRET = "211e0fc7-67af-4cc5-a7f6-5928b346e005"
-local CF_AUTH = "https://europe-west1-altui-cloud-function.cloudfunctions.net/SonosAuthorization"
-local CF_EVENT = "https://europe-west1-altui-cloud-function.cloudfunctions.net/SonosEvent"
-local EVENTCB_URL = "http://192.168.1.17/port_3480/data_request?id=lr_DENON_Handler&command=EventCB&DeviceNum=264"
-local AUTHORIZATIONCB_URL = "http://192.168.1.17/port_3480/data_request?id=lr_DENON_Handler&command=AuthorizationCB&DeviceNum=264"		
+local https = require ("ssl.https")	
 
 ------------------------------------------------
 -- Debug --

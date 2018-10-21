@@ -47,7 +47,7 @@ Warning this plugin requires :
 - a client ID, client secret registration to Sonos developper portal
 #### Google Cloud Function
 1. Create a google account if required
-2. go to google cloud console
+2. go to google cloud console https://console.cloud.google.com
 3. create a project
 4. Select Cloud Function in the top left hamburger menu
 5. Create a new cloud function with the code in the CloudFunction folder
