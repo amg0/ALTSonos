@@ -123,6 +123,61 @@ var ALTSonos = (function(api,$) {
 		jQuery( "#altsonos-login" ).on("click", _onLoginRequest)
 	};
 	
+	function ALTSonos_Households(deviceID) {
+		var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
+		var household = households[ 0 ] // for now, just the first one, later we will do all
+
+		var groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
+		var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
+		var playerMap = {}
+		jQuery.each( players, function(idx,player) {
+			playerMap[player.id] = player
+		})
+		var model = []
+		jQuery.each( groups , function(idx,group) {
+			var players = jQuery.map(group.playerIds, function(elem,idx) {
+				return playerMap[elem].name
+			})
+			model.push({
+				name: group.name,
+				state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
+				members: players.join(","),
+				id: group.id,
+			})
+		})
+		var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
+		// api.setCpanelContent(html);
+		set_panel_html(html);
+	};
+	
+	function ALTSonos_Players(deviceID) {
+		var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
+		var household = households[ 0 ] // for now, just the first one, later we will do all
+
+		var groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
+		var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
+		var playerMap = {}
+		jQuery.each( groups, function(idx,group) {
+			jQuery.map(group.playerIds, function(playerid,idx) {
+				playerMap[playerid] = {
+					group:group
+				}
+			})
+		})
+		var model = []
+		jQuery.each( players , function(idx,player) {
+			model.push({
+				name: player.name,
+				state : playerMap[player.id].group.playbackState.substr( "PLAYBACK_STATE_".length ),
+				capabilities: player.capabilities.join(","),
+				id: player.id,
+			})
+		})
+		var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
+		// api.setCpanelContent(html);
+		set_panel_html(html);
+	};
+
 	//-------------------------------------------------------------
 	// Helper functions to build URLs to call VERA code from JS
 	//-------------------------------------------------------------
@@ -280,6 +335,8 @@ var ALTSonos = (function(api,$) {
 		SERVICE		: SERVICE,
 		format		: format,
 		Settings	: ALTSonos_Settings,
+		Households	: ALTSonos_Households,
+		Players		: ALTSonos_Players,
 	}
 	return myModule;
 })(ALTSonos_myapi ,jQuery)
@@ -291,6 +348,12 @@ var ALTSonos = (function(api,$) {
 function ALTSonos_Settings (deviceID) {
 	return ALTSonos.Settings(deviceID)
 }
+function ALTSonos_Households (deviceID) {
+	return ALTSonos.Households(deviceID)
+}
+function ALTSonos_Players (deviceID) {
+	return ALTSonos.Players(deviceID)
+}	
 		
 function ALTSonos_Donate(deviceID) {
 	var htmlDonate='<p>Ce plugin est gratuit mais vous pouvez aider l\'auteur par une donation modique qui sera tres appréciée</p><p>This plugin is free but please consider supporting it by a very appreciated donation to the author.</p>';

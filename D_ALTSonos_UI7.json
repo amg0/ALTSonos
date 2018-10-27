@@ -252,11 +252,33 @@
 		"Function": "ALTSonos.Settings"
 	},
 	{
+		"Label": {
+			"lang_tag": "groups",
+			"text": "Groups"
+		},
+		"Position": 3,
+		"TopNavigationTab": "1",
+		"TabType": "javascript",
+		"ScriptName": "J_ALTSonos.js",
+		"Function": "ALTSonos.Households"
+	},
+	{
+		"Label": {
+			"lang_tag": "players",
+			"text": "Players"
+		},
+		"Position": 4,
+		"TopNavigationTab": "1",
+		"TabType": "javascript",
+		"ScriptName": "J_ALTSonos.js",
+		"Function": "ALTSonos.Players"
+	},
+	{
       "Label": {
         "lang_tag": "advanced",
         "text": "Advanced"
       },
-      "Position": 4,
+      "Position": 5,
 	  "TopNavigationTab": "1",
       "TabType": "javascript",
       "ScriptName": "shared.js",
@@ -267,7 +289,7 @@
         "lang_tag": "logs",
         "text": "Logs"
       },
-      "Position": 5,
+      "Position": 6,
       "TabType": "javascript",
       "ScriptName": "shared.js",
       "Function": "device_logs"
@@ -277,7 +299,7 @@
         "lang_tag": "notifications",
         "text": "Notifications"
       },
-      "Position": 6,
+      "Position": 7,
       "TabType": "javascript",
       "ScriptName": "shared.js",
       "Function": "device_notifications"
@@ -287,7 +309,7 @@
 			"lang_tag": "ui7_device_scenes",
 			"text": "Scenes"
 		},
-		"Position": 7,
+		"Position": 8,
 		"TabType": "javascript",
 		"ScriptName": "shared.js",
 		"Function": "device_scenes"
@@ -298,7 +320,7 @@
 			"text": "Donate"
 		},
 		"TopNavigationTab": "1",
-		"Position": 8,
+		"Position": 9,
 		"TabType": "javascript",
 		"ScriptName": "J_ALTSonos.js",
 		"Function": "ALTSonos_Donate"
