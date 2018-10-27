@@ -24,7 +24,7 @@ var ALTSonos = (function(api,$) {
 		return (value == null || value.length === 0);	// undefined == null also
 	};
 	
-	function format(str)
+	function myformat(str)
 	{
 	   var content = str;
 	   for (var i=1; i < arguments.length; i++)
@@ -61,14 +61,14 @@ var ALTSonos = (function(api,$) {
 				flags.push("required")
 			if (config.readonly)
 				flags.push("readonly")
-			groups += `
+			groups += ALTSonos.format(`
 				<div class="form-group col-6 col-xs-6">
 					<label for="altsonos-{1}">{0}</label>
 					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}" {2}>
 				</div>
-			`.format(config.label,config.id,flags.join(","))
+			`,config.label,config.id,flags.join(","))
 		});
-		var html =`
+		var html =ALTSonos.format(`
 		  <div id="altsonos-settings">
 			<form class="row" id="altsonos-settings-form">
 				{0}	
@@ -78,7 +78,7 @@ var ALTSonos = (function(api,$) {
 			</form>
 			<button id="altsonos-login" type="button" class="btn btn-default">Login to Sonos</button>
 		  </div>
-		`.format( groups )
+		`, groups )
 
 		// api.setCpanelContent(html);
 		set_panel_html(html);
@@ -115,7 +115,7 @@ var ALTSonos = (function(api,$) {
 				var SONOSLOGIN = "https://api.sonos.com/login/v3/oauth?client_id={0}&response_type=code&state={1}&scope=playback-control-all&redirect_uri={2}"
 				var state =	 btoa( JSON.stringify( { ip:data.ip , devnum:deviceID } ) )
 				var redirect_uri = encodeURIComponent( data.proxy )
-				var url = SONOSLOGIN.format( data.altsonos_key, state, redirect_uri)
+				var url = ALTSonos.format(SONOSLOGIN, data.altsonos_key, state, redirect_uri)
 				window.open(url,"_blank")
 			})			
 		}
@@ -173,7 +173,7 @@ var ALTSonos = (function(api,$) {
 				id: player.id,
 			})
 		})
-		var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
+		var html = array2Table(model,'id',[],'My Players','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
 		// api.setCpanelContent(html);
 		set_panel_html(html);
 	};
@@ -293,18 +293,18 @@ var ALTSonos = (function(api,$) {
 			});
 
 			var bFirst=true;
-			html+= format("<table id='{1}' class='table {2} table-sm table-hover table-striped {0}'>",cls || '', htmlid || 'altui-grid' , responsive );
+			html+= ALTSonos.format("<table id='{1}' class='table {2} table-sm table-hover table-striped {0}'>",cls || '', htmlid || 'altui-grid' , responsive );
 			if (caption)
-				html += format("<caption>{0}</caption>",caption)
+				html += ALTSonos.format("<caption>{0}</caption>",caption)
 			jQuery.each(arr, function(idx,obj) {
 				if (bFirst) {
 					html+="<thead>"
 					html+="<tr>"
 					jQuery.each(display_order,function(_k,k) {
-						html+=format("<th style='text-transform: capitalize;' data-column-id='{0}' {1} {2}>",
+						html+=ALTSonos.format("<th style='text-transform: capitalize;' data-column-id='{0}' {1} {2}>",
 							k,
 							(k==idcolumn) ? "data-identifier='true'" : "",
-							format("data-visible='{0}'", jQuery.inArray(k,viscols)!=-1 )
+							ALTSonos.format("data-visible='{0}'", jQuery.inArray(k,viscols)!=-1 )
 						)
 						html+=k;
 						html+="</th>"
@@ -326,14 +326,14 @@ var ALTSonos = (function(api,$) {
 			html+="</table>";
 		}
 		else
-			html +=format("<div>{0}</div>","No data to display")
+			html +=ALTSonos.format("<div>{0}</div>","No data to display")
 
 		return html;		
 	};
 	
 	var myModule = {
 		SERVICE		: SERVICE,
-		format		: format,
+		format		: myformat,
 		Settings	: ALTSonos_Settings,
 		Households	: ALTSonos_Households,
 		Players		: ALTSonos_Players,
