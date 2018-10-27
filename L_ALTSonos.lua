@@ -227,7 +227,31 @@ end
 -- HTTP Interface
 ------------------------------------------------
 
-local function SonosHTTP(lul_device,path,verb,body,b64credential)
+local function logSonosHTTP(request,code,headers)
+	debug(string.format("response request:%s",request))
+	debug(string.format("code:%s",code))
+	debug(string.format("headers:%s",json.encode(headers)))
+end
+
+local function refreshToken( lul_device )
+	debug(string.format("refreshToken(%s)",lul_device))
+	lul_device = tonumber(lul_device)
+
+	local ALTSONOS_KEY = getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
+	local ALTSONOS_SECRET = getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
+	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
+	local refresh_token = luup.variable_get(ALTSonos_SERVICE, "RefreshToken", lul_device)
+	local body = string.format('grant_type=refresh_token&refresh_token=%s',refresh_token)
+	
+	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
+	if (response ~=nil ) then
+		luup.variable_set(ALTSonos_SERVICE, "RefreshToken", response.refresh_token, lul_device)
+		luup.variable_set(ALTSonos_SERVICE, "AccessToken", response.access_token, lul_device)
+	end
+	return response,msg
+end
+
+function SonosHTTP(lul_device,path,verb,body,b64credential)
 	body = body or ""
 	if (b64credential==nil) then
 		local token = luup.variable_get(ALTSonos_SERVICE, "AccessToken", lul_device)	
@@ -256,11 +280,16 @@ local function SonosHTTP(lul_device,path,verb,body,b64credential)
 	})
 	
 	-- fail to connect
+	logSonosHTTP(request or 'nil',code,headers)
 	if (request==nil) then
 		error(string.format("failed to connect to %s, http.request returned nil", url))
 		return nil,"failed to connect"
 	elseif (code==401) then
-		warning(string.format("Access requires a user/password: %d", code))
+		warning(string.format("Access denied:%d , trying to refresh the token", code))
+		if (refreshToken( lul_device ) ~= nil) then
+			debug(string.format("Success refreshing the token, retrying the request"))
+			return SonosHTTP(lul_device,path,verb,body,nil)	-- nil to force reconstructing credential with new token
+		end
 		return nil,"unauthorized access - 401"
 	elseif (code==400) then
 		warning(string.format("Invalid client, uri or code: %d", code))
@@ -274,27 +303,10 @@ local function SonosHTTP(lul_device,path,verb,body,b64credential)
 	setVariableIfChanged(ALTSonos_SERVICE,"IconCode", 100, lul_device)
 
 	local data = table.concat(result)
-	debug(string.format("response request:%s",request))
-	debug(string.format("code:%s",code))
-	debug(string.format("headers:%s",json.encode(headers)))
 	debug(string.format("data:%s",data or ""))
 	
 	local response = json.decode(data)
 	return response,""
-end
-
-local function refreshToken( lul_device )
-	debug(string.format("refreshToken(%s)",lul_device))
-	lul_device = tonumber(lul_device)
-
-	local ALTSONOS_KEY = getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
-	local ALTSONOS_SECRET = getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
-	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
-	local refresh_token = luup.variable_get(ALTSonos_SERVICE, "RefreshToken", lul_device)
-	local body = string.format('grant_type=refresh_token&refresh_token=%s',refresh_token)
-	
-	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
-	return response,msg
 end
 
 local function onAuthorizationCallback( lul_device, AuthCode) 
@@ -415,7 +427,7 @@ end
 local function syncDevices(lul_device)
 	local groups=nil
 	local households = getHouseholds(lul_device)
-	debug(string.format("households respoonse = %s",json.encode(households)))
+	debug(string.format("households response = %s",json.encode(households)))
 	if (households~=nil) then
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
