@@ -126,9 +126,16 @@ var ALTSonos = (function(api,$) {
 	function ALTSonos_Households(deviceID) {
 		var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
 		var household = households[ 0 ] // for now, just the first one, later we will do all
-
 		var groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
 		var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
+		var btnBar = `
+			<div class="btn-group btn-group-sm" data-gid="{0}" role="group" aria-label="Basic example">
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-prev"><i class="fa fa-step-backward fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-pause"><i class="fa fa-pause fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-play"><i class="fa fa-play fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-next"><i class="fa fa-step-forward fa-1" aria-hidden="true"></i></button>
+			</div>
+		`
 		var playerMap = {}
 		jQuery.each( players, function(idx,player) {
 			playerMap[player.id] = player
@@ -143,11 +150,33 @@ var ALTSonos = (function(api,$) {
 				state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 				members: players.join(","),
 				id: group.id,
+				cmd: ALTSonos.format(btnBar,group.id)
 			})
 		})
 		var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
 		// api.setCpanelContent(html);
 		set_panel_html(html);
+		
+		function _Command(cmd,gid) {
+			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})
+			jQuery.get(url)
+		}
+		function _onPrev(e) {
+			_Command("Prev", jQuery(this).parent().data('gid'))
+		}
+		function _onPause(e) {
+			_Command("Pause", jQuery(this).parent().data('gid'))
+		}
+		function _onPlay(e) {
+			_Command("Play", jQuery(this).parent().data('gid'))
+		}
+		function _onNext(e) {
+			_Command("Next", jQuery(this).parent().data('gid'))
+		}
+		jQuery(".ALTSONOS-btn-prev").click(_onPrev)
+		jQuery(".ALTSONOS-btn-pause").click(_onPause)
+		jQuery(".ALTSONOS-btn-play").click(_onPlay)
+		jQuery(".ALTSONOS-btn-next").click(_onNext)
 	};
 	
 	function ALTSonos_Players(deviceID) {

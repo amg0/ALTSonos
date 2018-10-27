@@ -11,6 +11,12 @@
             <defaultValue>0</defaultValue>
             <shortCode>debug</shortCode>
         </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>groupID</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>groupid</shortCode>
+        </stateVariable>
 	</serviceStateTable>
     <actionList>
         <action>
@@ -25,6 +31,38 @@
         </action>
         <action>
             <name>Discover</name>
+        </action>
+        <action>
+            <name>Play</name>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
+        </action>
+        <action>
+            <name>Pause</name>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
+        </action>
+        <action>
+            <name>Prev</name>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
+        </action>
+		<action>
+            <name>Next</name>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
         </action>
 	</actionList>
 </scpd>

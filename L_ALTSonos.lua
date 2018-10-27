@@ -367,6 +367,15 @@ local function setDebugMode(lul_device,newDebugMode)
   end
 end
 
+-- cmd = "play" or "pause"
+local function groupPlayPause(lul_device,cmd,groupID)
+	debug(string.format("groupPlay(%s,%s,%s)",lul_device,groupID,cmd))
+	lul_device = tonumber(lul_device)
+	cmd = cmd or "play"
+	local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/%s",groupID,cmd)
+	local response,msg = SonosHTTP(lul_device,url,"POST")
+	return response,msg
+end
 ------------------------------------------------------------------------------------------------
 -- Http handlers : Communication FROM ALTUI
 -- http://192.168.1.5:3480/data_request?id=lr_ALTUI_Handler&command=xxx
