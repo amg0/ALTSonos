@@ -16,22 +16,33 @@ in any cases, not authorized for reseller or commercial usage
 - 0.1 : initial release
 - 0.2 : Discovery working
 - 0.3 : Parametrized installation with cloud function and customer specific App Key
+- 0.4 : play/pause & favorites UI , play/pause & favorites UPNP actions
 
 ### UI
 tbd
 
 ### Variables
 - Debug : 1 for mode debug enabled
+- ALTSonosKey : secret Sonos OAuth Key - Client ID
+- ALTSonosSecret : secret Sonos OAuth Secret - Client Secret
 - AccessToken : OAuth token standard for Sonos API
+- CloudFunctionAuthUrl : https url of a internet facing callback called by Sonos as part of OAuth authorization
 - RefreshToken : OAuth token standard for Sonos API
 - AuthCode : OAuth token standard for Sonos API
 - Groups : discovered groups of players
+- IconCode : 0 or 100 according to status
 - Players : discovered list of players
 - Households : discovered households ( usually one but could be multiple houses )
 - Version : version of the plugin
+- Favorites : favorites of the Sonos household
 
 ### UPNP Actions
 - Discover : trigger the household, groups and players landscape
+- Play : play the current item in the selection
+- Pause : pause the current item
+- Prev : move to the previous item in the selection
+- Next : move to the previous item in the selection
+- LoadFavorite : select and start playing a given favorite
 
 ### Triggers
 none
@@ -47,6 +58,7 @@ tbd
 Warning this plugin requires :
 - a google cloud function ( code in CloudFunction folder ) 
 - a client ID, client secret registration to Sonos developper portal
+
 #### Google Cloud Function
 1. Create a google account if required
 2. go to google cloud console https://console.cloud.google.com
