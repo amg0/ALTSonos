@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.3"
+local version		= "v0.31"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -251,8 +251,9 @@ local function refreshToken( lul_device )
 	return response,msg
 end
 
-function SonosHTTP(lul_device,path,verb,body,b64credential)
+function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype)
 	body = body or ""
+	contenttype = contenttype or "application/x-www-form-urlencoded"
 	if (b64credential==nil) then
 		local token = luup.variable_get(ALTSonos_SERVICE, "AccessToken", lul_device)	
 		b64credential = "Bearer ".. token
@@ -266,7 +267,7 @@ function SonosHTTP(lul_device,path,verb,body,b64credential)
 		["Authorization"] = b64credential,
 		["Content-Length"] = body:len(),
 		["Cache-Control"] =  'no-cache',
-		["Content-Type"] = "application/x-www-form-urlencoded",
+		["Content-Type"] = contenttype,
 	}
 	debug(string.format("request headers:%s",json.encode(headers)))
 	local result = {}
@@ -337,7 +338,7 @@ local function getGroups(lul_device, hid )
 	if (response ~=nil ) then
 		luup.variable_set(ALTSonos_SERVICE, "Players", json.encode(response.players), lul_device)
 		luup.variable_set(ALTSonos_SERVICE, "Groups", json.encode(response.groups), lul_device)
-		return obj
+		return response
 	end
 	return nil
 end
@@ -348,6 +349,17 @@ local function getHouseholds(lul_device)
 	if (response ~=nil ) then
 		luup.variable_set(ALTSonos_SERVICE, "Households", json.encode(response.households), lul_device)
 		return response.households
+	end
+	return nil
+end
+
+local function getFavorites(lul_device, hid)
+	debug(string.format("getFavorites(%s,%s)",lul_device,hid))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/favorites",hid)
+	local response,msg = SonosHTTP(lul_device,cmd,"GET")
+	if (response ~=nil ) then
+		luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(response.items), lul_device)
+		return response.items
 	end
 	return nil
 end
@@ -376,6 +388,18 @@ local function groupPlayPause(lul_device,cmd,groupID)
 	local response,msg = SonosHTTP(lul_device,url,"POST")
 	return response,msg
 end
+
+local function loadFavorites(lul_device, gid, fid)
+	debug(string.format("loadFavorites(%s,%s,%s)",lul_device,gid,fid))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/favorites",gid)
+	local body = json.encode({
+		favoriteId=fid,
+		playOnCompletion=true
+	})
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	return response,msg
+end
+
 ------------------------------------------------------------------------------------------------
 -- Http handlers : Communication FROM ALTUI
 -- http://192.168.1.5:3480/data_request?id=lr_ALTUI_Handler&command=xxx
@@ -440,6 +464,7 @@ local function syncDevices(lul_device)
 	if (households~=nil) then
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
+		local favorites = getFavorites(lul_device, householdid)
 	end
 	return (households~=nil) and (groups~=nil)
 end
@@ -463,6 +488,10 @@ function startupDeferred(lul_device)
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device, cfauthurl)
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
+	getSetVariable(ALTSonos_SERVICE, "Groups", lul_device, "")
+	getSetVariable(ALTSonos_SERVICE, "Players", lul_device, "")
+	getSetVariable(ALTSonos_SERVICE, "Households", lul_device, "")
+	getSetVariable(ALTSonos_SERVICE, "Favorites", lul_device, "")
 
 		
 	if (debugmode=="1") then

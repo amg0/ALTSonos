@@ -128,6 +128,7 @@ var ALTSonos = (function(api,$) {
 		var household = households[ 0 ] // for now, just the first one, later we will do all
 		var groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
 		var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
+		var favorites = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Favorites",1));
 		var btnBar = `
 			<div class="btn-group btn-group-sm" data-gid="{0}" role="group" aria-label="Basic example">
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-prev"><i class="fa fa-step-backward fa-1" aria-hidden="true"></i></button>
@@ -136,11 +137,24 @@ var ALTSonos = (function(api,$) {
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-next"><i class="fa fa-step-forward fa-1" aria-hidden="true"></i></button>
 			</div>
 		`
+		var favmap = jQuery.map( favorites, function(fav,id) {
+			return '<button data-favid="'+fav.id+'"class="dropdown-item ALTSONOS-btn-fav" type="button">'+fav.name+'</button>'
+		})
+		
 		var playerMap = {}
 		jQuery.each( players, function(idx,player) {
 			playerMap[player.id] = player
 		})
 		var model = []
+		var htmlFavoritesTemplate = `
+				<div class="dropdown" data-gid="{1}">
+				  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					Favorites
+				  </button>
+				  <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+				  {0}
+				  </div>
+				</div>`
 		jQuery.each( groups , function(idx,group) {
 			var players = jQuery.map(group.playerIds, function(elem,idx) {
 				return playerMap[elem].name
@@ -150,6 +164,7 @@ var ALTSonos = (function(api,$) {
 				state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 				members: players.join(","),
 				id: group.id,
+				favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
 				cmd: ALTSonos.format(btnBar,group.id)
 			})
 		})
@@ -173,10 +188,17 @@ var ALTSonos = (function(api,$) {
 		function _onNext(e) {
 			_Command("Next", jQuery(this).parent().data('gid'))
 		}
+		function _onFav(e) {
+			var favid = jQuery(this).data("favid")
+			var gid = jQuery(this).closest('.dropdown').data('gid')
+			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID:gid,favID:favid})
+			jQuery.get(url)
+		}
 		jQuery(".ALTSONOS-btn-prev").click(_onPrev)
 		jQuery(".ALTSONOS-btn-pause").click(_onPause)
 		jQuery(".ALTSONOS-btn-play").click(_onPlay)
 		jQuery(".ALTSONOS-btn-next").click(_onNext)
+		jQuery(".ALTSONOS-btn-fav").click(_onFav)
 	};
 	
 	function ALTSonos_Players(deviceID) {

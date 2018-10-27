@@ -17,6 +17,12 @@
             <defaultValue></defaultValue>
             <shortCode>groupid</shortCode>
         </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>favID</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>favid</shortCode>
+        </stateVariable>
 	</serviceStateTable>
     <actionList>
         <action>
@@ -64,5 +70,18 @@
 				<relatedStateVariable>groupid</relatedStateVariable>
 			</argument>
         </action>
+		<action>
+			<name>LoadFavorite</name>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>favID</name>
+				<direction>in</direction>
+				<relatedStateVariable>favid</relatedStateVariable>
+			</argument>
+		</action>	
 	</actionList>
 </scpd>
