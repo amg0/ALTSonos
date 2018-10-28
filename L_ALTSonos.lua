@@ -493,7 +493,10 @@ end
 
 local function startEngine(lul_device)
 	debug(string.format("startEngine(%s)",lul_device))
-	return syncDevices(lul_device)
+	if (syncDevices(lul_device)) then
+		return true
+	end
+	return false
 end
 
 function startupDeferred(lul_device)
