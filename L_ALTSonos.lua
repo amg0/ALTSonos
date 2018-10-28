@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.4"
+local version		= "v0.5"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -384,6 +384,7 @@ local function setVolumeRelative( lul_device, gid, delta )
 		volumeDelta=delta
 	})
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	luup.call_delay("syncDevices", 1, lul_device, false)
 	return response,msg
 end
 ------------------------------------------------
@@ -408,6 +409,7 @@ local function groupPlayPause(lul_device,cmd,groupID)
 	cmd = cmd or "play"
 	local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/%s",groupID,cmd)
 	local response,msg = SonosHTTP(lul_device,url,"POST")
+	luup.call_delay("syncDevices", 1, lul_device, false)
 	return response,msg
 end
 
@@ -419,7 +421,21 @@ local function loadFavorites(lul_device, gid, fid)
 		playOnCompletion=true
 	})
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	luup.call_delay("syncDevices", 1, lul_device, false)
 	return response,msg
+end
+
+local function unsubscribeMetadata(lul_device)
+	debug(string.format("unsubscribeMetadata(%s)",lul_device))
+	lul_device = tonumber(lul_device)
+	local response,msg = nil,nil
+	local groups = luup.variable_get(ALTSonos_SERVICE, "Groups", lul_device)
+	groups = json.decode( groups )
+	for k,group in pairs(groups) do
+		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.id)
+		local response,msg = SonosHTTP(lul_device,url,"DELETE")
+	end
+	return (response ~= nil )
 end
 
 ------------------------------------------------------------------------------------------------
@@ -467,6 +483,11 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 				debug(string.format("received json: {0}",json.encode(obj)))
 				return  msg .. " You can close the window and return to the ALTSONOS application" , "text/plain" 
 			end,
+		["EventCB"] = 
+			function(params)
+				debug(string.format("received EventCB"))
+				return "ok", "text/plain"
+			end,
 		["default"] =
 			function(params)
 				return "Default Handler", "text/plain"
@@ -479,7 +500,9 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 	return (lul_html or "") , mime_type
 end
 
-local function syncDevices(lul_device)
+function syncDevices(lul_device)
+	debug(string.format("syncDevices(%s)",lul_device))
+	lul_device = tonumber(lul_device)
 	local groups=nil
 	local households = getHouseholds(lul_device)
 	debug(string.format("households response = %s",json.encode(households)))
@@ -487,7 +510,10 @@ local function syncDevices(lul_device)
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
 		local favorites = getFavorites(lul_device, householdid)
+		-- unsubscribeMetadata(lul_device)
+		-- subscribeMetadata(lul_device)
 	end
+	-- luup.call_delay("syncDevices", 1, lul_device, false)
 	return (households~=nil) and (groups~=nil)
 end
 
@@ -511,6 +537,7 @@ function startupDeferred(lul_device)
 	getSetVariable(ALTSonos_SERVICE, "VeraOAuthCBUrl", lul_device, authurl)
 	local cfauthurl = ""
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device, cfauthurl)
+	getSetVariable(ALTSonos_SERVICE, "CloudFunctionEventUrl", lul_device, cfauthurl)
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Groups", lul_device, "")

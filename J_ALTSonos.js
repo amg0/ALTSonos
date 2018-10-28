@@ -133,64 +133,69 @@ var ALTSonos = (function(api,$) {
 	
 	function ALTSonos_Households(deviceID) {
 		fixUI7();
-
-		var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
-		var household = households[ 0 ] // for now, just the first one, later we will do all
 		var groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
-		var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
-		var favorites = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Favorites",1));
-		var btnBar = `
-			<div class="btn-group btn-group-sm" data-gid="{0}" role="group" aria-label="Basic example">
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-prev"><i class="fa fa-step-backward fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn {2} ALTSONOS-btn-pause"><i class="fa fa-pause fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn {1} ALTSONOS-btn-play"><i class="fa fa-play fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-next"><i class="fa fa-step-forward fa-1" aria-hidden="true"></i></button>
-			</div>
-		`
-		var btnVol = `
-			<div class="btn-group btn-group-sm btn-group" data-gidx="{0}" role="group" aria-label="Basic example">
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-plus"><i class="fa fa-plus fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-vol"><span id='ALTSONOS-vol-{0}'>??</span></button>
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
-			</div>
-			`
-		var favmap = jQuery.map( favorites, function(fav,id) {
-			return '<button data-favid="'+fav.id+'"class="dropdown-item ALTSONOS-btn-fav" type="button">'+fav.name+'</button>'
-		})
 		
-		var playerMap = {}
-		jQuery.each( players, function(idx,player) {
-			playerMap[player.id] = player
-		})
-		var model = []
-		var htmlFavoritesTemplate = `
-				<div class="dropdown" data-gid="{1}">
-				  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-					Favorites
-				  </button>
-				  <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
-				  {0}
-				  </div>
-				</div>`
-		jQuery.each( groups , function(idx,group) {
-			var players = jQuery.map(group.playerIds, function(elem,idx) {
-				return playerMap[elem].name
+		function getHtml() {
+			var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
+			var household = households[ 0 ] // for now, just the first one, later we will do all
+			groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
+			var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
+			var favorites = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Favorites",1));
+			var btnBar = `
+				<div class="btn-group btn-group-sm" data-gid="{0}" role="group" aria-label="Basic example">
+				  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-prev"><i class="fa fa-step-backward fa-1" aria-hidden="true"></i></button>
+				  <button type="button" class="btn {2} ALTSONOS-btn-pause"><i class="fa fa-pause fa-1" aria-hidden="true"></i></button>
+				  <button type="button" class="btn {1} ALTSONOS-btn-play"><i class="fa fa-play fa-1" aria-hidden="true"></i></button>
+				  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-next"><i class="fa fa-step-forward fa-1" aria-hidden="true"></i></button>
+				</div>
+			`
+			var btnVol = `
+				<div class="btn-group btn-group-sm btn-group" data-gidx="{0}" role="group" aria-label="Basic example">
+				  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-plus"><i class="fa fa-plus fa-1" aria-hidden="true"></i></button>
+				  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-vol"><span id='ALTSONOS-vol-{0}'>??</span></button>
+				  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
+				</div>
+				`
+			var favmap = jQuery.map( favorites, function(fav,id) {
+				return '<button data-favid="'+fav.id+'"class="dropdown-item ALTSONOS-btn-fav" type="button">'+fav.name+'</button>'
 			})
-			var cssplay = (group.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-success" : "btn-outline-secondary"
-			var csspause= (group.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-outline-secondary" : "btn-warning"
-			model.push({
-				name: group.name,
-				// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
-				members: players.join(","),
-				id: group.id,
-				volume: ALTSonos.format(btnVol,idx),
-				favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
-				cmd: ALTSonos.format(btnBar,group.id, cssplay, csspause)
+			
+			var playerMap = {}
+			jQuery.each( players, function(idx,player) {
+				playerMap[player.id] = player
 			})
-		})
-		var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
-		// api.setCpanelContent(html);
-		set_panel_html(html);
+			var model = []
+			var htmlFavoritesTemplate = `
+					<div class="dropdown" data-gid="{1}">
+					  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						Favorites
+					  </button>
+					  <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+					  {0}
+					  </div>
+					</div>`
+			jQuery.each( groups , function(idx,group) {
+				var players = jQuery.map(group.playerIds, function(elem,idx) {
+					return playerMap[elem].name
+				})
+				var cssplay = (group.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-success" : "btn-outline-secondary"
+				var csspause= (group.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-outline-secondary" : "btn-warning"
+				model.push({
+					name: group.name,
+					// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
+					members: players.join(","),
+					id: group.id,
+					volume: ALTSonos.format(btnVol,idx),
+					favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
+					cmd: ALTSonos.format(btnBar,group.id, cssplay, csspause)
+				})
+			})
+			var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
+			// api.setCpanelContent(html);
+			return html;
+		};
+		
+		set_panel_html(getHtml());
 		
 		function updateVolumes() {
 			jQuery.each( groups , function(idx,group) {
