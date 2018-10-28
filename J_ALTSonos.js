@@ -142,8 +142,8 @@ var ALTSonos = (function(api,$) {
 		var btnBar = `
 			<div class="btn-group btn-group-sm" data-gid="{0}" role="group" aria-label="Basic example">
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-prev"><i class="fa fa-step-backward fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-pause"><i class="fa fa-pause fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-play"><i class="fa fa-play fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn {2} ALTSONOS-btn-pause"><i class="fa fa-pause fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn {1} ALTSONOS-btn-play"><i class="fa fa-play fa-1" aria-hidden="true"></i></button>
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-next"><i class="fa fa-step-forward fa-1" aria-hidden="true"></i></button>
 			</div>
 		`
@@ -169,14 +169,16 @@ var ALTSonos = (function(api,$) {
 			var players = jQuery.map(group.playerIds, function(elem,idx) {
 				return playerMap[elem].name
 			})
+			var cssplay = (group.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-outline-success" : "btn-outline-secondary"
+			var csspause= (group.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-outline-secondary" : "btn-outline-warning"
 			model.push({
 				name: group.name,
-				state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
+				// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 				members: players.join(","),
 				id: group.id,
 				volume: ALTSonos.format("<span id='ALTSONOS-vol-{0}'></span>",idx),
 				favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
-				cmd: ALTSonos.format(btnBar,group.id)
+				cmd: ALTSonos.format(btnBar,group.id, cssplay, csspause)
 			})
 		})
 		var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
