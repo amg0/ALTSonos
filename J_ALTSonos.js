@@ -148,8 +148,9 @@ var ALTSonos = (function(api,$) {
 			</div>
 		`
 		var btnVol = `
-			<div class="btn-group btn-group-sm btn-group-vertical" data-gidx="{0}" role="group" aria-label="Basic example">
+			<div class="btn-group btn-group-sm btn-group" data-gidx="{0}" role="group" aria-label="Basic example">
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-plus"><i class="fa fa-plus fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-vol"><span id='ALTSONOS-vol-{0}'>??</span></button>
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
 			</div>
 			`
@@ -182,7 +183,7 @@ var ALTSonos = (function(api,$) {
 				// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 				members: players.join(","),
 				id: group.id,
-				volume: ALTSonos.format("<span id='ALTSONOS-vol-{0}'>??</span>"+ btnVol,idx),
+				volume: ALTSonos.format(btnVol,idx),
 				favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
 				cmd: ALTSonos.format(btnBar,group.id, cssplay, csspause)
 			})
