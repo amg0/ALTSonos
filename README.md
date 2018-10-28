@@ -35,6 +35,7 @@ tbd
 - Households : discovered households ( usually one but could be multiple houses )
 - Version : version of the plugin
 - Favorites : favorites of the Sonos household
+- LastVolume : last result of getVolume command
 
 ### UPNP Actions
 - Discover : trigger the household, groups and players landscape
@@ -43,7 +44,7 @@ tbd
 - Prev : move to the previous item in the selection
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
-
+- GetVolume : get the volume of a given group. return the value as part of the action or in the LastVolume variable
 ### Triggers
 none
 

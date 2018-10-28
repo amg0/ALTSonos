@@ -39,39 +39,63 @@
             <name>Discover</name>
         </action>
         <action>
+            <name>GetVolume</name>
+            <argumentList>
+				<argument>
+					<name>groupID</name>
+					<direction>in</direction>
+					<relatedStateVariable>groupid</relatedStateVariable>
+				</argument>
+				<argument>
+					<name>Volume</name>
+					<direction>out</direction>
+					<relatedStateVariable>LastVolume</relatedStateVariable>
+				</argument>
+            </argumentList>
+        </action>
+        <action>
             <name>Play</name>
+            <argumentList>
 			<argument>
 				<name>groupID</name>
 				<direction>in</direction>
 				<relatedStateVariable>groupid</relatedStateVariable>
 			</argument>
+            </argumentList>
         </action>
         <action>
             <name>Pause</name>
+            <argumentList>
 			<argument>
 				<name>groupID</name>
 				<direction>in</direction>
 				<relatedStateVariable>groupid</relatedStateVariable>
 			</argument>
+            </argumentList>
         </action>
         <action>
             <name>Prev</name>
+            <argumentList>
 			<argument>
 				<name>groupID</name>
 				<direction>in</direction>
 				<relatedStateVariable>groupid</relatedStateVariable>
 			</argument>
+            </argumentList>
         </action>
 		<action>
             <name>Next</name>
+            <argumentList>
 			<argument>
 				<name>groupID</name>
 				<direction>in</direction>
 				<relatedStateVariable>groupid</relatedStateVariable>
 			</argument>
+            </argumentList>
         </action>
 		<action>
 			<name>LoadFavorite</name>
+            <argumentList>
 			<argument>
 				<name>groupID</name>
 				<direction>in</direction>
@@ -82,6 +106,7 @@
 				<direction>in</direction>
 				<relatedStateVariable>favid</relatedStateVariable>
 			</argument>
+            </argumentList>
 		</action>	
 	</actionList>
 </scpd>

@@ -164,6 +164,7 @@ var ALTSonos = (function(api,$) {
 				state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 				members: players.join(","),
 				id: group.id,
+				volume: ALTSonos.format("<span id='ALTSONOS-vol-{0}'></span>",idx),
 				favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
 				cmd: ALTSonos.format(btnBar,group.id)
 			})
@@ -172,6 +173,15 @@ var ALTSonos = (function(api,$) {
 		// api.setCpanelContent(html);
 		set_panel_html(html);
 		
+		function updateVolumes() {
+			jQuery.each( groups , function(idx,group) {
+				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.id})
+				var result = jQuery.get(url,function(data) {
+					var vol = data["u:GetVolumeResponse"].Volume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
+					jQuery("#ALTSONOS-vol-"+ idx ).text(vol)
+				})
+			})
+		}
 		function _Command(cmd,gid) {
 			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})
 			jQuery.get(url)
@@ -194,6 +204,7 @@ var ALTSonos = (function(api,$) {
 			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID:gid,favID:favid})
 			jQuery.get(url)
 		}
+		updateVolumes();
 		jQuery(".ALTSONOS-btn-prev").click(_onPrev)
 		jQuery(".ALTSONOS-btn-pause").click(_onPause)
 		jQuery(".ALTSONOS-btn-play").click(_onPlay)

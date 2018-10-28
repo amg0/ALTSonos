@@ -23,6 +23,14 @@
 		</action>	         
 		<action>
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
+			<name>GetVolume</name>
+			<run>
+			local v= getVolume(lul_device, lul_settings.groupID)
+			luup.variable_set("urn:upnp-org:serviceId:altsonos1", "LastVolume", v, lul_device)
+			</run>
+		</action>	
+		<action>
+			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Play</name>
 			<job>
 			groupPlayPause(lul_device,"play",lul_settings.groupID)

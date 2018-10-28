@@ -364,6 +364,17 @@ local function getFavorites(lul_device, hid)
 	return nil
 end
 
+local function getVolume(lul_device, gid)
+	debug(string.format("getVolume(%s,%s)",lul_device,gid))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume",gid)
+	local response,msg = SonosHTTP(lul_device,cmd,"GET")
+	if (response ~=nil ) then
+		luup.variable_set(ALTSonos_SERVICE, "LastVolume", response.volume, lul_device)
+		return response.volume
+	end
+	return nil
+end
+
 ------------------------------------------------
 -- UPNP Actions Sequence
 ------------------------------------------------
