@@ -37,12 +37,20 @@ var ALTSonos = (function(api,$) {
 	   return content;
 	};
 	
+	function fixUI7() {
+		var href = 'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css'
+		var fa = jQuery("head link[href='"+href+"']").length
+		if(fa==0)
+			jQuery("head").append('<link rel="stylesheet" href="'+href+'">')
+	}
 	//-------------------------------------------------------------
 	// Device TAB : Settings
 	//-------------------------------------------------------------	
 
 	// <input type="text" class="form-control" id="altsonos-ipaddr" placeholder="ip address" required=""  pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" value="" >	
 	function ALTSonos_Settings(deviceID) {
+		fixUI7();
+	
 		var configs = [
 			{ label:'ALTSonosKey', id:'ALTSonosKey', service:ALTSonos.SERVICE , required:true},
 			{ label:'ALTSonosSecret', id:'ALTSonosSecret', service:ALTSonos.SERVICE , required:true},
@@ -124,6 +132,8 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	function ALTSonos_Households(deviceID) {
+		fixUI7();
+
 		var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
 		var household = households[ 0 ] // for now, just the first one, later we will do all
 		var groups = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Groups",1));
@@ -213,6 +223,7 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	function ALTSonos_Players(deviceID) {
+		fixUI7();
 		var households = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Households",1));
 		var household = households[ 0 ] // for now, just the first one, later we will do all
 
