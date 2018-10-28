@@ -147,6 +147,12 @@ var ALTSonos = (function(api,$) {
 			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-next"><i class="fa fa-step-forward fa-1" aria-hidden="true"></i></button>
 			</div>
 		`
+		var btnVol = `
+			<div class="btn-group btn-group-sm btn-group-vertical" data-gidx="{0}" role="group" aria-label="Basic example">
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-plus"><i class="fa fa-plus fa-1" aria-hidden="true"></i></button>
+			  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
+			</div>
+			`
 		var favmap = jQuery.map( favorites, function(fav,id) {
 			return '<button data-favid="'+fav.id+'"class="dropdown-item ALTSONOS-btn-fav" type="button">'+fav.name+'</button>'
 		})
@@ -176,7 +182,7 @@ var ALTSonos = (function(api,$) {
 				// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 				members: players.join(","),
 				id: group.id,
-				volume: ALTSonos.format("<span id='ALTSONOS-vol-{0}'></span>",idx),
+				volume: ALTSonos.format("<span id='ALTSONOS-vol-{0}'>??</span>"+ btnVol,idx),
 				favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.id),
 				cmd: ALTSonos.format(btnBar,group.id, cssplay, csspause)
 			})
@@ -198,6 +204,16 @@ var ALTSonos = (function(api,$) {
 			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})
 			jQuery.get(url)
 		}
+		function _onPlus(e) {
+			var gidx = jQuery(this).parent().data('gidx')
+			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx].id, volumeDelta:10})
+			jQuery.get(url)
+		}
+		function _onMinus(e) {
+			var gidx = jQuery(this).parent().data('gidx')
+			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx].id, volumeDelta:-10})
+			jQuery.get(url)
+		}
 		function _onPrev(e) {
 			_Command("Prev", jQuery(this).parent().data('gid'))
 		}
@@ -217,6 +233,8 @@ var ALTSonos = (function(api,$) {
 			jQuery.get(url)
 		}
 		updateVolumes();
+		jQuery(".ALTSONOS-btn-plus").click(_onPlus)
+		jQuery(".ALTSONOS-btn-minus").click(_onMinus)
 		jQuery(".ALTSONOS-btn-prev").click(_onPrev)
 		jQuery(".ALTSONOS-btn-pause").click(_onPause)
 		jQuery(".ALTSONOS-btn-play").click(_onPlay)

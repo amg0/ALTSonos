@@ -23,7 +23,12 @@
             <defaultValue></defaultValue>
             <shortCode>favid</shortCode>
         </stateVariable>
-	</serviceStateTable>
+        <stateVariable sendEvents="no">
+            <name>volumeDelta</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>volumedelta</shortCode>
+        </stateVariable>	</serviceStateTable>
     <actionList>
         <action>
             <name>SetDebug</name>
@@ -53,6 +58,21 @@
 				</argument>
             </argumentList>
         </action>
+		<action>
+			<name>SetVolumeRelative</name>
+            <argumentList>
+				<argument>
+					<name>groupID</name>
+					<direction>in</direction>
+					<relatedStateVariable>groupid</relatedStateVariable>
+				</argument>
+				<argument>
+					<name>volumeDelta</name>
+					<direction>in</direction>
+					<relatedStateVariable>volumeDelta</relatedStateVariable>
+				</argument>
+			</argumentList>
+		</action>
         <action>
             <name>Play</name>
             <argumentList>

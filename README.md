@@ -45,6 +45,8 @@ tbd
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
 - GetVolume : get the volume of a given group. return the value as part of the action or in the LastVolume variable
+- SetVolumeRelative : change the volume by the volumeDelta (-100 <=> 100) parameter of the given group
+
 ### Triggers
 none
 

@@ -375,6 +375,17 @@ local function getVolume(lul_device, gid)
 	return nil
 end
 
+local function setVolumeRelative( lul_device, gid, delta )
+	debug(string.format("setVolumeRelative(%s,%s,%s)",lul_device,gid,delta))
+	lul_device = tonumber(lul_device)
+	delta = delta or 0
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/relative",gid)
+	local body = json.encode({
+		volumeDelta=delta
+	})
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	return response,msg
+end
 ------------------------------------------------
 -- UPNP Actions Sequence
 ------------------------------------------------

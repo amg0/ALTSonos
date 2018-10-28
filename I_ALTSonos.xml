@@ -31,6 +31,14 @@
 		</action>	
 		<action>
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
+			<name>SetVolumeRelative</name>
+			<job>
+			setVolumeRelative(lul_device, lul_settings.groupID, lul_settings.volumeDelta)
+			return 4,0
+			</job>
+		</action>	
+		<action>
+			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Play</name>
 			<job>
 			groupPlayPause(lul_device,"play",lul_settings.groupID)
