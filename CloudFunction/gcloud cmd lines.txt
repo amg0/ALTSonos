@@ -1,0 +1,6 @@
+gcloud config list
+gcloud beta pubsub topics create sonos-event
+gcloud functions deploy sonosEvent --trigger-http
+gcloud functions call publish --data "{\"topic\":\"sonos-event\",\"message\":\"Hello World!\"}"
+gcloud pubsub subscriptions create mySubscription --topic sonos-event
+gcloud pubsub subscriptions pull projects/altui-cloud-function/subscriptions/mySubscription --auto-ack

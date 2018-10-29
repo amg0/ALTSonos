@@ -1,0 +1,11 @@
+{
+  "name": "sonos-event-callback",
+  "version": "0.0.1",
+  "dependencies": {
+	"@google-cloud/pubsub": "^0.20.1"
+  },
+  "cloud-repo-tools": {
+	"requiresKeyFile": true,
+	"requiresProjectId": true
+  }
+}
