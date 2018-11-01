@@ -57,8 +57,17 @@ exports.sonosEvent = (req, res) => {
 				res.status(500).send("ko - failed to create topic "+topicname);
 			});		
 	} else {
-		var data = JSON.stringify(req.headers);
-		const dataBuffer = Buffer.from(data)//.toString('base64');
+		var data = JSON.stringify( {  // JSON.stringify(req.headers);
+			seq_id : req.headers["x-sonos-event-seq-id"],
+			householdid : req.headers["x-sonos-household-id"],
+			namespace : req.headers["x-sonos-namespace"],
+			target_type : req.headers["x-sonos-target-type"],
+			target_value : req.headers["x-sonos-target-value"],
+			sonos_type : req.headers["x-sonos-type"],
+			body : req.body
+		} )
+		const dataBuffer = Buffer.from(data)//.toString('base64');,
+		
 		pubsub
 			.topic('sonos-event')
 			.publisher()

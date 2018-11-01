@@ -316,6 +316,8 @@ local function onAuthorizationCallback( lul_device, AuthCode)
 
 	luup.variable_set(ALTSonos_SERVICE, "AuthCode", AuthCode, lul_device)
 	local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
+	local cfauth2 = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionEventUrl", lul_device) 
+	local cfauth3 = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
 	local ALTSONOS_KEY = getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
 	local ALTSONOS_SECRET = getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
 	local b64credential = "Basic ".. mime.b64(ALTSONOS_KEY..":"..ALTSONOS_SECRET)
@@ -425,15 +427,22 @@ local function loadFavorites(lul_device, gid, fid)
 	return response,msg
 end
 
-local function unsubscribeMetadata(lul_device)
-	debug(string.format("unsubscribeMetadata(%s)",lul_device))
+local function subscribeMetadata(lul_device)
+	debug(string.format("subscribeMetadata(%s)",lul_device))
 	lul_device = tonumber(lul_device)
 	local response,msg = nil,nil
 	local groups = luup.variable_get(ALTSonos_SERVICE, "Groups", lul_device)
 	groups = json.decode( groups )
+	
+	-- unsubscribe
 	for k,group in pairs(groups) do
 		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.id)
 		local response,msg = SonosHTTP(lul_device,url,"DELETE")
+	end
+	-- subscribe
+	for k,group in pairs(groups) do
+		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.id)
+		local response,msg = SonosHTTP(lul_device,url,"POST")
 	end
 	return (response ~= nil )
 end
@@ -472,8 +481,10 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 		["GetAppInfo"] = 
 			function(params)
 				local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
+				local cfauth2 = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionEventUrl", lul_device) 
+				local cfauth3 = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 				
 				local ALTSONOS_KEY = luup.variable_get(ALTSonos_SERVICE, "ALTSonosKey", lul_device)
-				return json.encode( { ip=getIP(), altsonos_key=ALTSONOS_KEY, proxy=cfauth } ),"application/json"
+				return json.encode( { ip=getIP(), altsonos_key=ALTSONOS_KEY, proxy=cfauth, event=cfauth2, verapull=cfauth3 } ),"application/json"
 			end,
 		["AuthorizationCB"] = 
 			function(params)
@@ -510,8 +521,7 @@ function syncDevices(lul_device)
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
 		local favorites = getFavorites(lul_device, householdid)
-		-- unsubscribeMetadata(lul_device)
-		-- subscribeMetadata(lul_device)
+		subscribeMetadata(lul_device)
 	end
 	-- luup.call_delay("syncDevices", 1, lul_device, false)
 	return (households~=nil) and (groups~=nil)
@@ -538,6 +548,7 @@ function startupDeferred(lul_device)
 	local cfauthurl = ""
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device, cfauthurl)
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionEventUrl", lul_device, cfauthurl)
+	getSetVariable(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device, cfauthurl)
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Groups", lul_device, "")

@@ -55,6 +55,8 @@ var ALTSonos = (function(api,$) {
 			{ label:'ALTSonosKey', id:'ALTSonosKey', service:ALTSonos.SERVICE , required:true},
 			{ label:'ALTSonosSecret', id:'ALTSonosSecret', service:ALTSonos.SERVICE , required:true},
 			{ label:'CloudFunctionAuthUrl', id:'CloudFunctionAuthUrl', service:ALTSonos.SERVICE , required:true},
+			{ label:'CloudFunctionEventUrl', id:'CloudFunctionEventUrl', service:ALTSonos.SERVICE , required:true},
+			{ label:'CloudFunctionVeraPullUrl', id:'CloudFunctionVeraPullUrl', service:ALTSonos.SERVICE , required:true},
 			{ label:'VeraOAuthCBUrl', id:'VeraOAuthCBUrl', service:ALTSonos.SERVICE, readonly:true },
 			{ label:'AccessToken', id:'AccessToken', service:ALTSonos.SERVICE },
 			{ label:'RefreshToken', id:'RefreshToken', service:ALTSonos.SERVICE },

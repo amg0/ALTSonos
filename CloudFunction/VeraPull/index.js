@@ -135,8 +135,8 @@ exports.veraPull = (req, res) => {
 					ackRequest.ackIds.push(message.ackId);
 					var buffer = Buffer.from(message.message.data);
 					result.push({
-						messageId : message.message.messageId,
-						data : buffer.toString('ascii')
+						pubsubMessageId : message.message.messageId,
+						data : JSON.parse(buffer.toString('ascii'))
 					})
 				});
 				if (ackRequest.ackIds.length >0) {
