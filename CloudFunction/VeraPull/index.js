@@ -13,19 +13,12 @@
 
 // Imports the Google Cloud client library
 const PubSub = require(`@google-cloud/pubsub`);
-
+const topicname = 'sonos-event'
+const subscriptionname = 'vera-pull'
+	
 function listTopicSubscriptions(topicName) {
-  // [START pubsub_list_topic_subscriptions]
-  // Imports the Google Cloud client library
-  const PubSub = require(`@google-cloud/pubsub`);
-
   // Creates a client
   const pubsub = new PubSub();
-
-  /**
-   * TODO(developer): Uncomment the following line to run the sample.
-   */
-  // const topicName = 'my-topic';
 
   // Lists all subscriptions for the topic
   pubsub
@@ -43,9 +36,6 @@ function listTopicSubscriptions(topicName) {
 }
 
 function createSubscription(topicName, subscriptionName, callback ) {
-  // Imports the Google Cloud client library
-  const PubSub = require(`@google-cloud/pubsub`);
-
   // Creates a client
   const pubsub = new PubSub();
 
@@ -66,8 +56,6 @@ function createSubscription(topicName, subscriptionName, callback ) {
 }
 
 function listenForMessages(subscriptionName, timeout) {
-  const PubSub = require(`@google-cloud/pubsub`);
-
   // Creates a client
   const pubsub = new PubSub();
 
@@ -95,17 +83,11 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
-exports.veraPull = (req, res) => {
-	const PubSub = require(`@google-cloud/pubsub`);
-	const PROJECT = 'altui-cloud-function'
-	const topicname = 'sonos-event'
-	const subscriptionname = 'vera-pull'
-	
+exports.veraPull = (req, res) => {	
 	var client = new PubSub.v1.SubscriberClient({
-	  // optional auth parameters.
 	});
-	var formattedName = client.subscriptionPath(PROJECT, subscriptionname);
-	var formattedTopic = client.topicPath(PROJECT, topicname);
+	var formattedName = client.subscriptionPath(process.env.GCLOUD_PROJECT, subscriptionname);
+	var formattedTopic = client.topicPath(process.env.GCLOUD_PROJECT, topicname);
 
 	console.log( "headers:",JSON.stringify(req.headers));
 	console.log( "body:",JSON.stringify(req.body) );

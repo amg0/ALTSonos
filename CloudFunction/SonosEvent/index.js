@@ -10,11 +10,12 @@
 
 // Imports the Google Cloud client library
 const PubSub = require(`@google-cloud/pubsub`);
-
+const topicname = 'sonos-event'
+	
 function listAllTopics() {
   // [START pubsub_list_topics]
   // Imports the Google Cloud client library
-  const PubSub = require(`@google-cloud/pubsub`);
+  // const PubSub = require(`@google-cloud/pubsub`);
 
   // Creates a client
   const pubsub = new PubSub();
@@ -38,8 +39,7 @@ function listAllTopics() {
 exports.sonosEvent = (req, res) => {
 	// Creates a client
 	const pubsub = new PubSub();
-	const topicname = 'sonos-event'
-	
+
 	console.log( "headers:",JSON.stringify(req.headers));
 	console.log( "body:",JSON.stringify(req.body) );
 	console.log( "query:",JSON.stringify(req.query) );
