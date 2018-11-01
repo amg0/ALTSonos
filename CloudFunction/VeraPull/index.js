@@ -148,17 +148,20 @@ exports.veraPull = (req, res) => {
 					subscription: formattedName,
 					ackIds: [],
 				};
+				var result = [];
 				response.receivedMessages.forEach(message => {
 					ackRequest.ackIds.push(message.ackId);
-					var buffer = Buffer.from(message.message.data)
-					message.message.data = buffer.toString('ascii')
+					var buffer = Buffer.from(message.message.data);
+					result.push({
+						messageId : message.message.messageId,
+						data : buffer.toString('ascii')
+					})
 				});
-				var result = response.receivedMessages;
 				if (ackRequest.ackIds.length >0) {
 					client
 						.acknowledge(ackRequest)
 						.then(not_used => {
-							console.error('Messages acknowledged');
+							console.error('Messages acknowledged: ',JSON.stringify(ackRequest.ackIds));
 							res.status(200).send(JSON.stringify(result));
 						})
 						.catch(err => {
