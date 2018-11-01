@@ -20,6 +20,9 @@ local socket = require("socket")
 local modurl = require ("socket.url")
 local mime = require("mime")
 local https = require ("ssl.https")	
+local SonosEventTimer = 5
+local SonosEventTimerMin = SonosEventTimer
+local SonosEventTimerMax = 3600
 
 ------------------------------------------------
 -- Debug --
@@ -423,8 +426,28 @@ local function loadFavorites(lul_device, gid, fid)
 		playOnCompletion=true
 	})
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-	luup.call_delay("syncDevices", 1, lul_device, false)
+	luup.call_delay("syncDevices", 2, lul_device, false)
 	return response,msg
+end
+
+function refreshMetadata(lul_device)
+	debug(string.format("refreshMetadata(%s)",lul_device))
+	lul_device = tonumber(lul_device)
+	local url = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
+	local code,data,result = luup.inet.wget(url)
+	if (code==0) then
+		debug(string.format("received metadata message: %s",data))
+		if (data =="[]") then
+			SonosEventTimer = math.min( 2*SonosEventTimer , SonosEventTimerMax )
+		else
+			SonosEventTimer = SonosEventTimerMin
+		end
+		luup.call_delay("refreshMetadata", SonosEventTimer, lul_device, false)
+		-- local obj = json.decode(data)
+	else
+		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
+	end
+	return true
 end
 
 local function subscribeMetadata(lul_device)
@@ -444,6 +467,7 @@ local function subscribeMetadata(lul_device)
 		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.id)
 		local response,msg = SonosHTTP(lul_device,url,"POST")
 	end
+	luup.call_delay("refreshMetadata", SonosEventTimer, lul_device, false)
 	return (response ~= nil )
 end
 

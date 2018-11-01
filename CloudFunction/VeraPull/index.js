@@ -102,7 +102,7 @@ exports.veraPull = (req, res) => {
 		  .then(responses => {
 			var subscription = responses[0];
 			// doThingsWith(subscription)
-			console.error('Subscription created:', subscriptionname);
+			console.log('Subscription created:', subscriptionname);
 			res.status(200).send("ok");
 		  })
 		  .catch(err => {
@@ -143,7 +143,7 @@ exports.veraPull = (req, res) => {
 					client
 						.acknowledge(ackRequest)
 						.then(not_used => {
-							console.error('Messages acknowledged: ',JSON.stringify(ackRequest.ackIds));
+							console.log('Messages acknowledged: ',JSON.stringify(ackRequest.ackIds));
 							res.status(200).send(JSON.stringify(result));
 						})
 						.catch(err => {
@@ -151,7 +151,7 @@ exports.veraPull = (req, res) => {
 							res.status(500).send("ko");
 						});
 				} else {
-					console.error('no messages were received' );
+					console.log('no messages were received' );
 					res.status(200).send("[]");
 				}
 			})
