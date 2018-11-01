@@ -134,9 +134,7 @@ exports.veraPull = (req, res) => {
 		const request = {
 			subscription: formattedName,
 			maxMessages: maxMessages,
-			options: {
-				timeout: 5	// 5 sec
-			}
+			returnImmediately: true
 		};
 		client
 			.pull(request)
@@ -156,16 +154,21 @@ exports.veraPull = (req, res) => {
 					message.message.data = buffer.toString('ascii')
 				});
 				var result = response.receivedMessages;
-				client
-					.acknowledge(ackRequest)
-					.then(not_used => {
-						console.error('Messages acknowledged');
-						res.status(200).send(JSON.stringify(result));
-					})
-					.catch(err => {
-						console.error(err);
-						res.status(500).send("ko");
-					});
+				if (ackRequest.ackIds.length >0) {
+					client
+						.acknowledge(ackRequest)
+						.then(not_used => {
+							console.error('Messages acknowledged');
+							res.status(200).send(JSON.stringify(result));
+						})
+						.catch(err => {
+							console.error(err);
+							res.status(500).send("ko");
+						});
+				} else {
+					console.error('no messages were received' );
+					res.status(200).send("[]");
+				}
 			})
 			.catch(err => {
 				console.error('ERROR:', err);
