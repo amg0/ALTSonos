@@ -17,6 +17,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.2 : Discovery working
 - 0.3 : Parametrized installation with cloud function and customer specific App Key
 - 0.4 : play/pause & favorites UI , play/pause & favorites UPNP actions
+- 0.6 : Async notification from Sonos cloud working ( metadata, track, image etc ... ) , no UI yet
 
 ### UI
 tbd
