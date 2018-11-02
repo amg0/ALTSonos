@@ -152,11 +152,18 @@ var ALTSonos = (function(api,$) {
 		}
 		function getName(group) {
 			var data = []
-			if (group.metadataStatus && group.metadataStatus.currentItem && group.metadataStatus.currentItem.track) {
-				if (group.metadataStatus.currentItem.track.artist) {
-					data.push(group.metadataStatus.currentItem.track.artist.name)
+			if (group.metadataStatus) {
+				if ( group.metadataStatus.currentItem && group.metadataStatus.currentItem.track) {
+					if (group.metadataStatus.currentItem.track.artist) {
+						data.push(group.metadataStatus.currentItem.track.artist.name)
+					}
+					data.push(group.metadataStatus.currentItem.track.name)
+				} else if (group.metadataStatus.container) {
+					data.push(group.metadataStatus.container.name)
+					if (group.metadataStatus.currentShow) {
+						data.push(group.metadataStatus.currentShow.name)
+					}
 				}
-				data.push(group.metadataStatus.currentItem.track.name)
 			}
 			return data.join(":<br>")
 		}
@@ -200,7 +207,8 @@ var ALTSonos = (function(api,$) {
 					  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
 					</div>
 					`
-				var favmap = jQuery.map( favorites, function(fav,id) {
+				var favmap = jQuery.map( favorites, function(obj,id) {
+					fav = obj.favorite
 					return '<button data-favid="'+fav.id+'"class="dropdown-item ALTSONOS-btn-fav" type="button">'+fav.name+'</button>'
 				})
 				
