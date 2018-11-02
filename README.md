@@ -78,21 +78,34 @@ Warning this plugin requires :
 - SonosAuthorization
 - SonosEvent
 - VeraPull
-this can be done with the gcloud SDK ( from google ) and using command line from the folder where the cloud function code resides. 
+
+this can be done with the google cloud console,  or from the command line using the gcloud SDK ( from google ) and running it from folder where the cloud function code resides. 
 Choose your region as best see fit. cf https://cloud.google.com/compute/docs/regions-zones/
 example
 
 `gcloud functions deploy veraPull --trigger-http --memory=128 --region=europe-west1`
-6. note down the http trigger in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
+
+6. note down the http trigger urls in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
 
 
 #### Registration of the Application in Sonos developper portal
 1. Create a Sonos developper account https://developer.sonos.com/
 2. Go to Integration / create a new integration
 3. Enter name , go next until you reach the screen with the Key and Secret ; copied them down
-4. Click Add a redirect URL and enter your google cloud function http trigger url
+4. Click Add a redirect URL and enter your google cloud functions http trigger url : one for SonosAuthorization, the other one for SonosEvent
 
 #### Configuration of the ALT Sonos plugin in settings tab
 1. Enter the Key and the secret in the settings field
-2. Enter the Cloud Function trigger http url in the field
+2. Enter the Cloud Function trigger http url in the field : the 3 of them : SonosAuthorization, SonosEvent and VeraPull
+
+#### Initialization
+for now, some initialization is needed.
+run the SonosEvent and the VeraPull url with init=1 parameters
+http://<...your url...>/SonosEvent?init=1
+http://<...your url...>/VeraPull?init=1
+this will create the google pubsub topics and subscriptions that are required
+
+
+
+
 
