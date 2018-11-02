@@ -101,8 +101,8 @@ example
 #### Initialization
 for now, some initialization is needed.
 run the SonosEvent and the VeraPull url with init=1 parameters
-http://<...your url...>/SonosEvent?init=1
-http://<...your url...>/VeraPull?init=1
+`http://<...your url...>/SonosEvent?init=1`
+`http://<...your url...>/VeraPull?init=1`
 this will create the google pubsub topics and subscriptions that are required
 
 
