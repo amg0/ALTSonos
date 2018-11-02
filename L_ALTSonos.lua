@@ -511,7 +511,7 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 		["GetDBInfo"] = 
 			function(params)
 				return json.encode(DB), "application/json"
-			end
+			end,
 		["GetAppInfo"] = 
 			function(params)
 				local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
