@@ -134,6 +134,11 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	function ALTSonos_Households(deviceID) {
+		var db = null
+		var household = null
+		var groups = {};
+		var favorites = [];
+				
 		function getHousehold(db) {
 			var first = Object.keys(db)[0]
 			return db[ first ] // for now, just the first one, later we will do all
@@ -166,17 +171,18 @@ var ALTSonos = (function(api,$) {
 		
 		fixUI7();
 		var url = buildHandlerUrl(deviceID,"GetDBInfo")
-		jQuery.get(url, function(db) {
-			if (db==null)
+		jQuery.get(url, function(data) {
+			if ((data==null) || (data=="No handler"))
 				return
-			var household = getHousehold(db)
-			var groups = getGroups(household);
-			var favorites = getFavorites(household);
+			db = data
+			household = getHousehold(db)
+			groups = getGroups(household);
+			favorites = getFavorites(household);
 			
 			function getHtml(db) {
-				var household = getHousehold(db)
-				var groups = getGroups(household);
-				var favorites = getFavorites(household);
+				// var household = getHousehold(db)
+				// var groups = getGroups(household);
+				// var favorites = getFavorites(household);
 				var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
 				
 				var btnBar = `
@@ -190,7 +196,7 @@ var ALTSonos = (function(api,$) {
 				var btnVol = `
 					<div class="btn-group btn-group-sm btn-group" data-gidx="{0}" role="group" aria-label="Basic example">
 					  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-plus"><i class="fa fa-plus fa-1" aria-hidden="true"></i></button>
-					  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-vol"><span id='ALTSONOS-vol-{0}'>??</span></button>
+					  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-vol"><span id='ALTSONOS-vol-{0}'>{1}</span></button>
 					  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
 					</div>
 					`
@@ -226,44 +232,51 @@ var ALTSonos = (function(api,$) {
 						id: ALTSonos.format("<span title='{0}'>See</span>",group.core.id),
 						track: getName(group), 
 						img: getImage(group),
-						volume: ALTSonos.format(btnVol,idx),
+						volume: (group.groupVolume) ? ALTSonos.format(btnVol,idx,group.groupVolume.volume) : '?',
 						favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.core.id),
 						cmd: ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
 					})
 				})
 				var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
 				// api.setCpanelContent(html);
-				return "<div id='altsonos-main'>"+html+"</div>";
+				return html;
 			};
-			set_panel_html(getHtml(db));
-			updateVolumes(db);
+			set_panel_html( "<div id='altsonos-main'>"+getHtml(db)+"</div>" );
+			// updateVolumes();
 			
-			function updateVolumes(db) {
-				var household = getHousehold(db)
-				var groups = getGroups(household);
+			function updateVolume(idx,group) {
+				// var household = getHousehold(db)
+				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
+				var result = jQuery.get(url,function(data) {
+					var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
+					jQuery("#ALTSONOS-vol-"+ idx ).text(vol)
+				})
+			};
+			
+			function updateVolumes() {
+				// var household = getHousehold(db)
+				// var groups = getGroups(household);
 				// var favorites = getFavorites(household);
 				jQuery.each( groups , function(idx,groupkey) {
-					var group = household.groupId[groupkey]
-					var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
-					var result = jQuery.get(url,function(data) {
-						var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
-						jQuery("#ALTSONOS-vol-"+ idx ).text(vol)
-					})
+					updateVolume(idx,household.groupId[groupkey]);
 				})
-			}
+			};
 			function refreshHtml() {
 				if ( (jQuery("#ALTSONOS-groupstbl").length >0) && (jQuery("#ALTSONOS-groupstbl").is(":visible")) ){
 					var url = buildHandlerUrl(deviceID,"GetDBInfo")
-					jQuery.get(url, function(db) {
-						if (db==null)
+					jQuery.get(url, function(data) {
+						if ((data==null) || (data=="No handler"))
 							return
+						db = data
+						household = getHousehold(db)
+						groups = getGroups(household);
+						favorites = getFavorites(household);
 						jQuery("#ALTSONOS-groupstbl").replaceWith(getHtml(db));
-						updateVolumes(db);
-						setTimeout( refreshHtml, 3000);
+						setTimeout( refreshHtml, 2000);
 					})
 				}
 			}
-			setTimeout( refreshHtml, 3000);
+			setTimeout( refreshHtml, 2000);
 			
 			function _Command(cmd,gid) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})
@@ -272,12 +285,18 @@ var ALTSonos = (function(api,$) {
 			function _onPlus(e) {
 				var gidx = jQuery(this).parent().data('gidx')
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx], volumeDelta:VOLDELTA})
-				jQuery.get(url)
+				jQuery.get(url).done( function() {
+					groupkey = groups[gidx]
+					updateVolume(gidx,household.groupId[groupkey]);
+				})
 			}
 			function _onMinus(e) {
 				var gidx = jQuery(this).parent().data('gidx')
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx], volumeDelta:-VOLDELTA})
-				jQuery.get(url)
+				jQuery.get(url).done( function() {
+					groupkey = groups[gidx]
+					updateVolume(gidx,household.groupId[groupkey]);
+				})
 			}
 			function _onPrev(e) {
 				_Command("Prev", jQuery(this).parent().data('gid'))

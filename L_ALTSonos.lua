@@ -231,6 +231,32 @@ end
 ------------------------------------------------
 -- HTTP Interface
 ------------------------------------------------
+local function findGroupHousehold(gid)
+	for hid,household in pairs(SonosDB) do
+		if (household.groupId[gid] ~= nil) then
+			return hid
+		end
+	end
+	return null
+end
+
+local function getDBValue(lul_device,householdid,target_type,target_value,sonos_type )
+	SonosDB[householdid] = SonosDB[householdid] or {}
+	if (target_type ~=nil) then
+		if (target_value~=nil) then
+			if (sonos_type~=nil) then
+				return SonosDB[householdid][target_type][target_value][sonos_type] 
+			else
+				return SonosDB[householdid][target_type][target_value] 
+			end
+		else
+			return SonosDB[householdid][target_type]
+		end
+	else
+		return SonosDB[householdid] 
+	end
+	return null
+end
 
 local function setDBValue(lul_device,householdid,target_type,target_value,sonos_type, body )
 	debug(string.format("setDBValue(%s,%s,%s,%s,%s)",lul_device,householdid,target_type or '',target_value or '',sonos_type or ''))
@@ -412,12 +438,17 @@ local function setVolumeRelative( lul_device, gid, delta )
 	debug(string.format("setVolumeRelative(%s,%s,%s)",lul_device,gid,delta))
 	lul_device = tonumber(lul_device)
 	delta = delta or 0
+	
+	local householdid = findGroupHousehold(gid)
+	local curvol = getDBValue(lul_device,householdid,'groupId',gid,'groupVolume' )
+	curvol.volume = curvol.volume + delta
+	setDBValue(lul_device,householdid,'groupId',gid,'groupVolume', curvol )
+
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/relative",gid)
 	local body = json.encode({
 		volumeDelta=delta
-	})
+	})	
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-	luup.call_delay("syncDevices", 1, lul_device, false)
 	return response,msg
 end
 ------------------------------------------------
@@ -463,6 +494,7 @@ function refreshMetadata(data)
 		else
 			debug(string.format("received metadata message: %s",data))
 			local arr = json.decode(data)
+			debug(string.format("metadata with %d messages",tablelength(arr)))			
 			for k,msg in pairs(arr) do
 				local obj = msg.data
 				setDBValue(lul_device,obj.householdid,obj.target_type,obj.target_value,obj.sonos_type,obj.body)
@@ -521,11 +553,15 @@ local function subscribeMetadata(lul_device,hid)
 	for k,group in pairs(groups) do
 		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
 		local response,msg = SonosHTTP(lul_device,url,"DELETE")
+		url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id)
+		response,msg = SonosHTTP(lul_device,url,"DELETE")
 	end
 	-- subscribe
 	for k,group in pairs(groups) do
 		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
 		local response,msg = SonosHTTP(lul_device,url,"POST")
+		url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id)
+		response,msg = SonosHTTP(lul_device,url,"POST")
 	end
 	
 	-- start a new engine loop
