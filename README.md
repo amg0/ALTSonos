@@ -26,26 +26,29 @@ tbd
 - ALTSonosKey : secret Sonos OAuth Key - Client ID
 - ALTSonosSecret : secret Sonos OAuth Secret - Client Secret
 - AccessToken : OAuth token standard for Sonos API
-- CloudFunctionAuthUrl : https url of a internet facing callback called by Sonos as part of OAuth authorization
-- RefreshToken : OAuth token standard for Sonos API
 - AuthCode : OAuth token standard for Sonos API
-- Groups : discovered groups of players
-- IconCode : 0 or 100 according to status
-- Players : discovered list of players
-- Households : discovered households ( usually one but could be multiple houses )
-- Version : version of the plugin
+- CloudFunctionAuthUrl : https url of a internet facing callback called by Sonos as part of OAuth authorization
+- CloudFunctionEventUrl : https url of a internet facing callback called by Sonos for the async event notifications
+- CloudFunctionVeraPullUrl : https url called by Vera to pull for an eventually incoming message from PubSub/Sonos
 - Favorites : favorites of the Sonos household
+- Groups : discovered groups of players
+- Households : discovered households ( usually one but could be multiple houses )
+- IconCode : 0 or 100 according to status
 - LastVolume : last result of getVolume command
+- Players : discovered list of players
+- RefreshToken : OAuth token standard for Sonos API
+- Version : version of the plugin
 
 ### UPNP Actions
+- SetDebug : Set the DEBUG mode
 - Discover : trigger the household, groups and players landscape
+- GetVolume : get the volume of a given group. return the value as part of the action or in the LastVolume variable
+- SetVolumeRelative : change the volume by the volumeDelta (-100 <=> 100) parameter of the given group
 - Play : play the current item in the selection
 - Pause : pause the current item
 - Prev : move to the previous item in the selection
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
-- GetVolume : get the volume of a given group. return the value as part of the action or in the LastVolume variable
-- SetVolumeRelative : change the volume by the volumeDelta (-100 <=> 100) parameter of the given group
 
 ### Triggers
 none
