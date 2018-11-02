@@ -233,7 +233,7 @@ var ALTSonos = (function(api,$) {
 				})
 				var html = array2Table(model,'id',[],'My Groups','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
 				// api.setCpanelContent(html);
-				return html;
+				return "<div id='altsonos-main'>"+html+"</div>";
 			};
 			set_panel_html(getHtml(db));
 			updateVolumes(db);
@@ -297,7 +297,7 @@ var ALTSonos = (function(api,$) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID:gid,favID:favid})
 				jQuery.get(url)
 			}
-			jQuery("#ALTSONOS-groupstbl").off('click')
+			jQuery("#altsonos-main").off('click')
 				.on('click',".ALTSONOS-btn-plus",_onPlus)
 				.on('click',".ALTSONOS-btn-minus",_onMinus)
 				.on('click',".ALTSONOS-btn-prev",_onPrev)
