@@ -132,18 +132,19 @@ exports.veraPull = (req, res) => {
 				};
 				var result = [];
 				response.receivedMessages.forEach(message => {
-					ackRequest.ackIds.push(message.ackId);
+					// console.log("message received:",message)
 					var buffer = Buffer.from(message.message.data);
+					ackRequest.ackIds.push(message.ackId);
 					result.push({
 						pubsubMessageId : message.message.messageId,
-						data : JSON.parse(buffer.toString('ascii'))
+						data : JSON.parse(buffer.toString())
 					})
 				});
 				if (ackRequest.ackIds.length >0) {
 					client
 						.acknowledge(ackRequest)
 						.then(not_used => {
-							console.log('Messages acknowledged: ',JSON.stringify(ackRequest.ackIds));
+							// console.log('Messages acknowledged: ',JSON.stringify(ackRequest.ackIds));
 							res.status(200).send(JSON.stringify(result));
 						})
 						.catch(err => {
@@ -151,7 +152,7 @@ exports.veraPull = (req, res) => {
 							res.status(500).send("ko");
 						});
 				} else {
-					console.log('no messages were received' );
+					// console.log('no messages were received' );
 					res.status(200).send("[]");
 				}
 			})
