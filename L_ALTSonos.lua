@@ -440,11 +440,15 @@ function refreshMetadata(lul_device)
 		if (data =="[]") then
 			SonosEventTimer = math.min( 2*SonosEventTimer , SonosEventTimerMax )
 		else
-			local obj = json.decode(data)
-			DB[obj.householdid] = DB[obj.householdid] or {}
-			DB[obj.householdid][obj.target_type] = DB[obj.householdid][obj.target_type] or {}
-			DB[obj.householdid][obj.target_type][obj.target_value] = DB[obj.householdid][obj.target_type][obj.target_value] or {}
-			DB[obj.householdid][obj.target_type][obj.target_value][obj.sonos_type] = obj.body
+			debug(string.format("received metadata message: %s",data))
+			local arr = json.decode(data)
+			for k,msg in pairs(arr) do
+			local obj = msg.data
+				DB[obj.householdid] = DB[obj.householdid] or {}
+				DB[obj.householdid][obj.target_type] = DB[obj.householdid][obj.target_type] or {}
+				DB[obj.householdid][obj.target_type][obj.target_value] = DB[obj.householdid][obj.target_type][obj.target_value] or {}
+				DB[obj.householdid][obj.target_type][obj.target_value][obj.sonos_type] = obj.body
+			end
 			debug(string.format("updated DB %s",json.encode(DB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
