@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.5"
+local version		= "v0.6"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -23,6 +23,7 @@ local https = require ("ssl.https")
 local SonosEventTimer = 5
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
+local DB = {}
 
 ------------------------------------------------
 -- Debug --
@@ -436,14 +437,19 @@ function refreshMetadata(lul_device)
 	local url = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
 	local code,data,result = luup.inet.wget(url)
 	if (code==0) then
-		debug(string.format("received metadata message: %s",data))
 		if (data =="[]") then
 			SonosEventTimer = math.min( 2*SonosEventTimer , SonosEventTimerMax )
 		else
+			local obj = json.decode(data)
+			DB[obj.householdid] = DB[obj.householdid] or {}
+			DB[obj.householdid][obj.target_type] = DB[obj.householdid][obj.target_type] or {}
+			DB[obj.householdid][obj.target_type][obj.target_value] = DB[obj.householdid][obj.target_type][obj.target_value] or {}
+			DB[obj.householdid][obj.target_type][obj.target_value][obj.sonos_type] = obj.body
+			debug(string.format("updated DB %s",json.encode(DB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
+		debug(string.format("received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))
 		luup.call_delay("refreshMetadata", SonosEventTimer, lul_device, false)
-		-- local obj = json.decode(data)
 	else
 		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
 	end
@@ -502,6 +508,10 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 
 	-- switch table
 	local action = {
+		["GetDBInfo"] = 
+			function(params)
+				return json.encode(DB), "application/json"
+			end
 		["GetAppInfo"] = 
 			function(params)
 				local cfauth = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device) 
