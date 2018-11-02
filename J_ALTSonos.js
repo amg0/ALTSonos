@@ -231,8 +231,9 @@ var ALTSonos = (function(api,$) {
 					var players = jQuery.map(group.core.playerIds, function(elem,idx) {
 						return playerMap[elem].name
 					})
-					var cssplay = (group.core.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-success" : "btn-outline-secondary"
-					var csspause= (group.core.playbackState=="PLAYBACK_STATE_PLAYING") ? "btn-outline-secondary" : "btn-warning"
+					var playStatus = group.playbackStatus.playbackState || group.core.playbackState
+					var cssplay = (playStatus=="PLAYBACK_STATE_PLAYING") ? "btn-success" : "btn-outline-secondary"
+					var csspause= (playStatus=="PLAYBACK_STATE_PLAYING") ? "btn-outline-secondary" : "btn-warning"
 					model.push({
 						name: group.core.name,
 						// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),

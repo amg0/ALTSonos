@@ -541,6 +541,14 @@ local function loadFavorites(lul_device, gid, fid)
 	return response,msg
 end
 
+function subscribeDeferred(data)
+	debug(string.format("subscribeDeferred(%s)",data))
+	local tbl = json.decode(data)
+	for k,obj in pairs(tbl) do
+		local response,msg = SonosHTTP(obj.lul_device,obj.url,obj.verb)
+	end
+end
+
 local function subscribeMetadata(lul_device,hid)
 	debug(string.format("subscribeMetadata(%s)",lul_device))
 	lul_device = tonumber(lul_device)
@@ -551,17 +559,21 @@ local function subscribeMetadata(lul_device,hid)
 	
 	-- unsubscribe
 	for k,group in pairs(groups) do
-		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
-		local response,msg = SonosHTTP(lul_device,url,"DELETE")
-		url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id)
-		response,msg = SonosHTTP(lul_device,url,"DELETE")
+		local tbl = {
+			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="DELETE"},
+			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="DELETE"},
+			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="DELETE"},
+		}
+		luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
 	end
 	-- subscribe
 	for k,group in pairs(groups) do
-		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
-		local response,msg = SonosHTTP(lul_device,url,"POST")
-		url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id)
-		response,msg = SonosHTTP(lul_device,url,"POST")
+		local tbl = {
+			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="POST"},
+			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="POST"},
+			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="POST"},
+		}
+		luup.call_delay("subscribeDeferred", 5, json.encode(tbl))
 	end
 	
 	-- start a new engine loop
