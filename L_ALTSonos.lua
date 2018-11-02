@@ -24,6 +24,7 @@ local SonosEventTimer = 5
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
 local SonosDB = {}
+local SeqId = 0 	-- for changing timer duration of pending calldelay ...
 
 ------------------------------------------------
 -- Debug --
@@ -434,6 +435,55 @@ local function setDebugMode(lul_device,newDebugMode)
   end
 end
 
+local counter = 0
+local function increaseTimer(current)
+	local result = current
+	counter= counter+1
+	if (counter>10) then
+		counter = 0
+		result = math.min( 2*SonosEventTimer , SonosEventTimerMax )
+	end
+	return result
+end
+
+function refreshMetadata(data)
+	debug(string.format("refreshMetadata(%s)",data))
+	local obj = json.decode(data)
+	lul_device = tonumber(obj.lul_device)
+	oldSeqId = tonumber(obj.lul_data)
+	if (oldSeqId < SeqId ) then
+		warning(string.format("Obsolete refreshMetadata callback, ignoring.  %d %d",oldSeqId,SeqId))
+		return false
+	end
+	local url = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
+	local code,data,result = luup.inet.wget(url)
+	if (code==0) then
+		if (data =="[]") then
+			SonosEventTimer = increaseTimer(SonosEventTimer)
+		else
+			debug(string.format("received metadata message: %s",data))
+			local arr = json.decode(data)
+			for k,msg in pairs(arr) do
+				local obj = msg.data
+				setDBValue(lul_device,obj.householdid,obj.target_type,obj.target_value,obj.sonos_type,obj.body)
+			end
+			debug(string.format("updated DB %s",json.encode(SonosDB)))
+			SonosEventTimer = SonosEventTimerMin
+		end
+		debug(string.format("received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))		
+		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+	else
+		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
+	end
+	return true
+end
+
+local function resetRefreshMetadataLoop(lul_device)
+	SeqId = SeqId+1
+	SonosEventTimer = SonosEventTimerMin
+	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+end
+
 -- cmd = "play" or "pause"
 local function groupPlayPause(lul_device,cmd,groupID)
 	debug(string.format("groupPlay(%s,%s,%s)",lul_device,groupID,cmd))
@@ -441,7 +491,8 @@ local function groupPlayPause(lul_device,cmd,groupID)
 	cmd = cmd or "play"
 	local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/%s",groupID,cmd)
 	local response,msg = SonosHTTP(lul_device,url,"POST")
-	luup.call_delay("syncDevices", 1, lul_device, false)
+	
+	resetRefreshMetadataLoop(lul_device)
 	return response,msg
 end
 
@@ -453,34 +504,9 @@ local function loadFavorites(lul_device, gid, fid)
 		playOnCompletion=true
 	})
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-	luup.call_delay("syncDevices", 2, lul_device, false)
-	return response,msg
-end
 
-function refreshMetadata(lul_device)
-	debug(string.format("refreshMetadata(%s)",lul_device))
-	lul_device = tonumber(lul_device)
-	local url = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
-	local code,data,result = luup.inet.wget(url)
-	if (code==0) then
-		if (data =="[]") then
-			SonosEventTimer = math.min( 2*SonosEventTimer , SonosEventTimerMax )
-		else
-			debug(string.format("received metadata message: %s",data))
-			local arr = json.decode(data)
-			for k,msg in pairs(arr) do
-				local obj = msg.data
-				setDBValue(lul_device,obj.householdid,obj.target_type,obj.target_value,obj.sonos_type,obj.body)
-			end
-			debug(string.format("updated DB %s",json.encode(SonosDB)))
-			SonosEventTimer = SonosEventTimerMin
-		end
-		debug(string.format("received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))
-		luup.call_delay("refreshMetadata", SonosEventTimer, lul_device, false)
-	else
-		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
-	end
-	return true
+	resetRefreshMetadataLoop(lul_device)
+	return response,msg
 end
 
 local function subscribeMetadata(lul_device,hid)
@@ -501,7 +527,9 @@ local function subscribeMetadata(lul_device,hid)
 		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
 		local response,msg = SonosHTTP(lul_device,url,"POST")
 	end
-	luup.call_delay("refreshMetadata", SonosEventTimer, lul_device, false)
+	
+	-- start a new engine loop
+	resetRefreshMetadataLoop(lul_device)
 	return (response ~= nil )
 end
 
@@ -586,7 +614,6 @@ function syncDevices(lul_device)
 		local favorites = getFavorites(lul_device, householdid)
 		subscribeMetadata(lul_device,householdid)
 	end
-	-- luup.call_delay("syncDevices", 1, lul_device, false)
 	return (households~=nil) and (groups~=nil)
 end
 

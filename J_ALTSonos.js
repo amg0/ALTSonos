@@ -134,6 +134,25 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	function ALTSonos_Households(deviceID) {
+		function getName(group) {
+			var data = []
+			if (group.metadataStatus && group.metadataStatus.currentItem && group.metadataStatus.currentItem.track) {
+				if (group.metadataStatus.currentItem.track.artist) {
+					data.push(group.metadataStatus.currentItem.track.artist.name)
+				}
+				data.push(group.metadataStatus.currentItem.track.name)
+			}
+			return data.join(" : ")
+		}
+		function getImage(group) {
+			var img = "" 
+			try {
+				img = group.metadataStatus.currentItem.track.imageUrl
+			} 
+			catch {}
+			return (img=="") ? "" : ALTSonos.format("<img style='height:100px;' src='{0}'></img>",img)
+		}
+		
 		fixUI7();
 		var url = buildHandlerUrl(deviceID,"GetDBInfo")
 		jQuery.get(url, function(db) {
@@ -190,7 +209,9 @@ var ALTSonos = (function(api,$) {
 						name: group.core.name,
 						// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 						members: players.join(","),
-						id: group.core.id,
+						id: ALTSonos.format("<span title='{0}'>See</span>",group.core.id),
+						track: getName(group), 
+						img: getImage(group),
 						volume: ALTSonos.format(btnVol,idx),
 						favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.core.id),
 						cmd: ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
