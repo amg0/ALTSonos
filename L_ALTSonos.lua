@@ -20,7 +20,7 @@ local socket = require("socket")
 local modurl = require ("socket.url")
 local mime = require("mime")
 local https = require ("ssl.https")	
-local SonosEventTimer = 5
+local SonosEventTimer = 2
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
 local SonosDB = {}
@@ -470,7 +470,7 @@ local counter = 0
 local function increaseTimer(current)
 	local result = current
 	counter= counter+1
-	if (counter>10) then
+	if (counter>5) then
 		counter = 0
 		result = math.min( 2*SonosEventTimer , SonosEventTimerMax )
 	end

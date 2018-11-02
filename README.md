@@ -74,7 +74,17 @@ Warning this plugin requires :
 2. go to google cloud console https://console.cloud.google.com
 3. create a project
 4. Select Cloud Function in the top left hamburger menu
-5. Create a new cloud function with the code in the CloudFunction folder
+5. per each folder, Create a new cloud function with the code file and package.json file in the CloudFunction folder , so that is 3 cloud functions
+- SonosAuthorization
+- SonosEvent
+- VeraPull
+this can be done with the gcloud SDK ( from google ) and using command line from the folder where the cloud function code resides. 
+Choose your region as best see fit. cf https://cloud.google.com/compute/docs/regions-zones/
+example
+
+`gcloud functions deploy veraPull --trigger-http --memory=128 --region=europe-west1`
+6. note down the http trigger in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
+
 
 #### Registration of the Application in Sonos developper portal
 1. Create a Sonos developper account https://developer.sonos.com/
