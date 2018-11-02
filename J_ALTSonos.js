@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 // ALTSonos	 Plugin javascript Tabs
 //-------------------------------------------------------------
-
+var VOLDELTA = 5
 var ALTSonos_myapi = window.api || null
 var ALTSonos = (function(api,$) {
 	
@@ -214,12 +214,12 @@ var ALTSonos = (function(api,$) {
 		}
 		function _onPlus(e) {
 			var gidx = jQuery(this).parent().data('gidx')
-			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx].id, volumeDelta:10})
+			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx].id, volumeDelta:VOLDELTA})
 			jQuery.get(url)
 		}
 		function _onMinus(e) {
 			var gidx = jQuery(this).parent().data('gidx')
-			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx].id, volumeDelta:-10})
+			var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx].id, volumeDelta:-VOLDELTA})
 			jQuery.get(url)
 		}
 		function _onPrev(e) {
