@@ -23,7 +23,7 @@ local https = require ("ssl.https")
 local SonosEventTimer = 5
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
-local DB = {}
+local SonosDB = {}
 
 ------------------------------------------------
 -- Debug --
@@ -231,6 +231,20 @@ end
 -- HTTP Interface
 ------------------------------------------------
 
+local function setDBValue(lul_device,householdid,target_type,target_value,sonos_type, body )
+	debug(string.format("setDBValue(%s,%s,%s,%s,%s)",lul_device,householdid,target_type or '',target_value or '',sonos_type or ''))
+	SonosDB[householdid] = SonosDB[householdid] or {}
+	if (target_type ~=nil) then
+		SonosDB[householdid][target_type] = SonosDB[householdid][target_type] or {}
+		if (target_value ~= nil) then
+			SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
+			if (sonos_type ~=nil) then
+				SonosDB[householdid][target_type][target_value][sonos_type] = body
+			end
+		end
+	end
+end
+
 local function logSonosHTTP(request,code,headers)
 	debug(string.format("response request:%s",request))
 	debug(string.format("code:%s",code))
@@ -342,8 +356,12 @@ local function getGroups(lul_device, hid )
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/groups",hid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
+		for i,grp in pairs(response.groups) do
+			setDBValue(lul_device,hid,'groupId',grp.id,'core', grp )
+		end
+		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Players", json.encode(response.players), lul_device)
-		luup.variable_set(ALTSonos_SERVICE, "Groups", json.encode(response.groups), lul_device)
+		-- luup.variable_set(ALTSonos_SERVICE, "Groups", json.encode(response.groups), lul_device)
 		return response
 	end
 	return nil
@@ -353,6 +371,10 @@ local function getHouseholds(lul_device)
 	debug(string.format("getHouseholds(%s)",lul_device))
 	local response,msg = SonosHTTP(lul_device,"api.ws.sonos.com/control/api/v1/households","GET")
 	if (response ~=nil ) then
+		for i,household in pairs(response.households) do
+			setDBValue(lul_device,household.id)
+		end
+		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Households", json.encode(response.households), lul_device)
 		return response.households
 	end
@@ -364,6 +386,10 @@ local function getFavorites(lul_device, hid)
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/favorites",hid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
+		for i,fav in pairs(response.items) do
+			setDBValue(lul_device,hid,'favorites',i,'favorite', fav )
+		end
+		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(response.items), lul_device)
 		return response.items
 	end
@@ -443,13 +469,10 @@ function refreshMetadata(lul_device)
 			debug(string.format("received metadata message: %s",data))
 			local arr = json.decode(data)
 			for k,msg in pairs(arr) do
-			local obj = msg.data
-				DB[obj.householdid] = DB[obj.householdid] or {}
-				DB[obj.householdid][obj.target_type] = DB[obj.householdid][obj.target_type] or {}
-				DB[obj.householdid][obj.target_type][obj.target_value] = DB[obj.householdid][obj.target_type][obj.target_value] or {}
-				DB[obj.householdid][obj.target_type][obj.target_value][obj.sonos_type] = obj.body
+				local obj = msg.data
+				setDBValue(lul_device,obj.householdid,obj.target_type,obj.target_value,obj.sonos_type,obj.body)
 			end
-			debug(string.format("updated DB %s",json.encode(DB)))
+			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
 		debug(string.format("received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))
@@ -460,21 +483,22 @@ function refreshMetadata(lul_device)
 	return true
 end
 
-local function subscribeMetadata(lul_device)
+local function subscribeMetadata(lul_device,hid)
 	debug(string.format("subscribeMetadata(%s)",lul_device))
 	lul_device = tonumber(lul_device)
 	local response,msg = nil,nil
-	local groups = luup.variable_get(ALTSonos_SERVICE, "Groups", lul_device)
-	groups = json.decode( groups )
+	-- local groups = luup.variable_get(ALTSonos_SERVICE, "Groups", lul_device)
+	-- groups = json.decode( groups )
+	groups = SonosDB[hid].groupId
 	
 	-- unsubscribe
 	for k,group in pairs(groups) do
-		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.id)
+		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
 		local response,msg = SonosHTTP(lul_device,url,"DELETE")
 	end
 	-- subscribe
 	for k,group in pairs(groups) do
-		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.id)
+		local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id)
 		local response,msg = SonosHTTP(lul_device,url,"POST")
 	end
 	luup.call_delay("refreshMetadata", SonosEventTimer, lul_device, false)
@@ -514,7 +538,8 @@ function myALTSonos_Handler(lul_request, lul_parameters, lul_outputformat)
 	local action = {
 		["GetDBInfo"] = 
 			function(params)
-				return json.encode(DB), "application/json"
+				local result = json.encode(SonosDB)
+				return result, "application/json"
 			end,
 		["GetAppInfo"] = 
 			function(params)
@@ -559,7 +584,7 @@ function syncDevices(lul_device)
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
 		local favorites = getFavorites(lul_device, householdid)
-		subscribeMetadata(lul_device)
+		subscribeMetadata(lul_device,householdid)
 	end
 	-- luup.call_delay("syncDevices", 1, lul_device, false)
 	return (households~=nil) and (groups~=nil)
@@ -589,7 +614,7 @@ function startupDeferred(lul_device)
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device, cfauthurl)
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosKey", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "ALTSonosSecret", lul_device, "")
-	getSetVariable(ALTSonos_SERVICE, "Groups", lul_device, "")
+	-- getSetVariable(ALTSonos_SERVICE, "Groups", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Players", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Households", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Favorites", lul_device, "")

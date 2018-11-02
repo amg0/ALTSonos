@@ -32,7 +32,6 @@ tbd
 - CloudFunctionEventUrl : https url of a internet facing callback called by Sonos for the async event notifications
 - CloudFunctionVeraPullUrl : https url called by Vera to pull for an eventually incoming message from PubSub/Sonos
 - Favorites : favorites of the Sonos household
-- Groups : discovered groups of players
 - Households : discovered households ( usually one but could be multiple houses )
 - IconCode : 0 or 100 according to status
 - LastVolume : last result of getVolume command
@@ -50,6 +49,10 @@ tbd
 - Prev : move to the previous item in the selection
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
+
+### Handler
+- http://<ip>/port_3480/data_request?id=lr_ALTSonos_Handler&command=GetDBInfo&DeviceNum=<devnum>
+get the internal DB ( all info, all households, all groups & players & tracks )
 
 ### Triggers
 none
