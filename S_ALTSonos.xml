@@ -28,7 +28,14 @@
             <dataType>string</dataType>
             <defaultValue></defaultValue>
             <shortCode>volumedelta</shortCode>
-        </stateVariable>	</serviceStateTable>
+        </stateVariable>	
+        <stateVariable sendEvents="no">
+            <name>LastVolume</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>lastVolume</shortCode>
+        </stateVariable>	
+	</serviceStateTable>
     <actionList>
         <action>
             <name>SetDebug</name>
