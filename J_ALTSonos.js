@@ -134,6 +134,17 @@ var ALTSonos = (function(api,$) {
 	};
 	
 	function ALTSonos_Households(deviceID) {
+		function getHousehold(db) {
+			var first = Object.keys(db)[0]
+			return db[ first ] // for now, just the first one, later we will do all
+		}
+		function getGroups(household) {
+			var groups = Object.keys(household.groupId)
+			return groups
+		}
+		function getFavorites(household) {
+			return household.favorites;
+		}
 		function getName(group) {
 			var data = []
 			if (group.metadataStatus && group.metadataStatus.currentItem && group.metadataStatus.currentItem.track) {
@@ -158,13 +169,16 @@ var ALTSonos = (function(api,$) {
 		jQuery.get(url, function(db) {
 			if (db==null)
 				return
-			var first = Object.keys(db)[0]
-			var household = db[ first ] // for now, just the first one, later we will do all
-			var groups = Object.keys(household.groupId)
+			var household = getHousehold(db)
+			var groups = getGroups(household);
+			var favorites = getFavorites(household);
 			
-			function getHtml() {
+			function getHtml(db) {
+				var household = getHousehold(db)
+				var groups = getGroups(household);
+				var favorites = getFavorites(household);
 				var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
-				var favorites = household.favorites;
+				
 				var btnBar = `
 					<div class="btn-group btn-group-sm" data-gid="{0}" role="group" aria-label="Basic example">
 					  <button type="button" class="btn btn-outline-secondary ALTSONOS-btn-prev"><i class="fa fa-step-backward fa-1" aria-hidden="true"></i></button>
@@ -221,12 +235,15 @@ var ALTSonos = (function(api,$) {
 				// api.setCpanelContent(html);
 				return html;
 			};
+			set_panel_html(getHtml(db));
+			updateVolumes(db);
 			
-			set_panel_html(getHtml());
-			
-			function updateVolumes() {
+			function updateVolumes(db) {
+				var household = getHousehold(db)
+				var groups = getGroups(household);
+				// var favorites = getFavorites(household);
 				jQuery.each( groups , function(idx,groupkey) {
-					group = household.groupId[groupkey]
+					var group = household.groupId[groupkey]
 					var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
 					var result = jQuery.get(url,function(data) {
 						var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
@@ -234,6 +251,20 @@ var ALTSonos = (function(api,$) {
 					})
 				})
 			}
+			function refreshHtml() {
+				if ( (jQuery("#ALTSONOS-groupstbl").length >0) && (jQuery("#ALTSONOS-groupstbl").is(":visible")) ){
+					var url = buildHandlerUrl(deviceID,"GetDBInfo")
+					jQuery.get(url, function(db) {
+						if (db==null)
+							return
+						jQuery("#ALTSONOS-groupstbl").replaceWith(getHtml(db));
+						updateVolumes(db);
+						setTimeout( refreshHtml, 3000);
+					})
+				}
+			}
+			setTimeout( refreshHtml, 3000);
+			
 			function _Command(cmd,gid) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})
 				jQuery.get(url)
@@ -266,14 +297,22 @@ var ALTSonos = (function(api,$) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID:gid,favID:favid})
 				jQuery.get(url)
 			}
-			updateVolumes();
-			jQuery(".ALTSONOS-btn-plus").click(_onPlus)
-			jQuery(".ALTSONOS-btn-minus").click(_onMinus)
-			jQuery(".ALTSONOS-btn-prev").click(_onPrev)
-			jQuery(".ALTSONOS-btn-pause").click(_onPause)
-			jQuery(".ALTSONOS-btn-play").click(_onPlay)
-			jQuery(".ALTSONOS-btn-next").click(_onNext)
-			jQuery(".ALTSONOS-btn-fav").click(_onFav)
+			jQuery("#ALTSONOS-groupstbl").off('click')
+				.on('click',".ALTSONOS-btn-plus",_onPlus)
+				.on('click',".ALTSONOS-btn-minus",_onMinus)
+				.on('click',".ALTSONOS-btn-prev",_onPrev)
+				.on('click',".ALTSONOS-btn-pause",_onPause)
+				.on('click',".ALTSONOS-btn-play",_onPlay)
+				.on('click',".ALTSONOS-btn-next",_onNext)
+				.on('click',".ALTSONOS-btn-fav",_onFav)
+				
+			// jQuery(".ALTSONOS-btn-plus").click(_onPlus)
+			// jQuery(".ALTSONOS-btn-minus").click(_onMinus)
+			// jQuery(".ALTSONOS-btn-prev").click(_onPrev)
+			// jQuery(".ALTSONOS-btn-pause").click(_onPause)
+			// jQuery(".ALTSONOS-btn-play").click(_onPlay)
+			// jQuery(".ALTSONOS-btn-next").click(_onNext)
+			// jQuery(".ALTSONOS-btn-fav").click(_onFav)
 		});						
 	};
 	
