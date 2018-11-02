@@ -344,7 +344,7 @@ var ALTSonos = (function(api,$) {
 					id: player.id,
 				})
 			})
-			var html = array2Table(model,'id',[],'My Players','ALTSONOS-tbl','ALTSONOS-groupstbl',false)
+			var html = array2Table(model,'id',[],'My Players','ALTSONOS-tbl','ALTSONOS-playerstbl',false)
 			// api.setCpanelContent(html);
 			set_panel_html(html);		
 		})
