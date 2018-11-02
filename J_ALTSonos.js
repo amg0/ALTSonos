@@ -229,7 +229,7 @@ var ALTSonos = (function(api,$) {
 					group = household.groupId[groupkey]
 					var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
 					var result = jQuery.get(url,function(data) {
-						var vol = data["u:GetVolumeResponse"].Volume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
+						var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
 						jQuery("#ALTSONOS-vol-"+ idx ).text(vol)
 					})
 				})
