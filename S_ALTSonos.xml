@@ -59,7 +59,7 @@
 					<relatedStateVariable>groupid</relatedStateVariable>
 				</argument>
 				<argument>
-					<name>Volume</name>
+					<name>LastVolume</name>
 					<direction>out</direction>
 					<relatedStateVariable>LastVolume</relatedStateVariable>
 				</argument>

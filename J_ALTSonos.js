@@ -142,15 +142,15 @@ var ALTSonos = (function(api,$) {
 				}
 				data.push(group.metadataStatus.currentItem.track.name)
 			}
-			return data.join(" : ")
+			return data.join(":<br>")
 		}
 		function getImage(group) {
-			var img = "" 
+			var img = undefined 
 			try {
 				img = group.metadataStatus.currentItem.track.imageUrl
 			} 
 			catch {}
-			return (img=="") ? "" : ALTSonos.format("<img style='height:100px;' src='{0}'></img>",img)
+			return (img==undefined) ? "" : ALTSonos.format("<img style='height:100px;' src='{0}'></img>",img)
 		}
 		
 		fixUI7();
