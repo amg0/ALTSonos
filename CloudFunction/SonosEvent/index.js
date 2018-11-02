@@ -43,7 +43,11 @@ exports.sonosEvent = (req, res) => {
 	console.log( "headers:",JSON.stringify(req.headers));
 	console.log( "body:",JSON.stringify(req.body) );
 	console.log( "query:",JSON.stringify(req.query) );
-
+	if (req.headers['x-sonos-event-signature'] == undefined) {
+		console.log( "Event missing signature, rejected" )
+		res.status(500).send("");
+		return
+	}
 	if (req.query.init=='1') {
 		pubsub
 			.createTopic(topicname)
