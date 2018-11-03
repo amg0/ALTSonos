@@ -173,7 +173,7 @@ var ALTSonos = (function(api,$) {
 				img = group.metadataStatus.currentItem.track.imageUrl
 			} 
 			catch {}
-			return (img==undefined) ? "" : ALTSonos.format("<img style='height:100px;' src='{0}'></img>",img)
+			return (img==undefined) ? "" : ALTSonos.format("<img style='height:100px;width:100px;' src='{0}'></img>",img)
 		}
 		
 		fixUI7();
