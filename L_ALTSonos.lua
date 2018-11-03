@@ -502,7 +502,7 @@ function refreshMetadata(data)
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
-		debug(string.format("received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))		
+		debug(string.format("refreshMetadata: received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))		
 		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	else
 		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
