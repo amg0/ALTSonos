@@ -471,6 +471,7 @@ local function setVolumeRelative( lul_device, gid, delta )
 		volumeDelta=delta
 	})	
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	resetRefreshMetadataLoop(lul_device)
 	return response,msg
 end
 ------------------------------------------------
@@ -637,6 +638,7 @@ local function setPlayMode(lul_device, gid)
 		  }
 	})	
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	resetRefreshMetadataLoop(lul_device)
 	return response,msg
 end
 
@@ -661,6 +663,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl )
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
 		-- groupPlayPause(lul_device,"play",gid)
 		luup.call_delay("stopStreamUrl", 10, json.encode({lul_device=lul_device, gid=gid}))
+		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
 	warning("could not join or create a sonos session")
