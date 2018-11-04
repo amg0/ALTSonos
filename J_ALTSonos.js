@@ -248,7 +248,7 @@ var ALTSonos = (function(api,$) {
 						name: group.core.name,
 						// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 						members: players.join(","),
-						id: ALTSonos.format("<span title='{0}'>See</span>",group.core.id),
+						id: ALTSonos.format("<button data-gid='{0}' data-gidx='{1}'  class='btn btn-sm btn-outline-secondary altsonos-btn-see'><span title='{0}'>See</span></button>",group.core.id,idx),
 						track: getName(idx,group), 
 						img: getImage(idx,group),
 						volume: getVolume(idx,group),
