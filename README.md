@@ -18,7 +18,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.3 : Parametrized installation with cloud function and customer specific App Key
 - 0.4 : play/pause & favorites UI , play/pause & favorites UPNP actions
 - 0.6 : Async notification from Sonos cloud working ( metadata, track, image etc ... ) , no UI yet
-- 0.7 : UI for async notifications , set/change volume , display track album art, etc...
+- 0.7 : UI for async notifications , set/change volume , display track album art, play Audio Clip UPNP etc...
 
 ### UI
 tbd
@@ -50,6 +50,8 @@ tbd
 - Prev : move to the previous item in the selection
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
+- AudioClip : trigger the play of a clip (urlClip) on a group (groupID or "ALL" for all) then stop
+
 
 ### Handler
 - http://<ip>/port_3480/data_request?id=lr_ALTSonos_Handler&command=GetDBInfo&DeviceNum=<devnum>
