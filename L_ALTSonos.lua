@@ -268,15 +268,27 @@ local function getDBValue(lul_device,householdid,target_type,target_value,sonos_
 	return null
 end
 
-local function setDBValue(lul_device,householdid,target_type,target_value,sonos_type, body )
-	debug(string.format("setDBValue(%s,%s,%s,%s,%s)",lul_device,householdid,target_type or '',target_value or '',sonos_type or ''))
+local function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
+	debug(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	seq_id = tonumber(seq_id or 0)
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
 		SonosDB[householdid][target_type] = SonosDB[householdid][target_type] or {}
 		if (target_value ~= nil) then
 			SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 			if (sonos_type ~=nil) then
-				SonosDB[householdid][target_type][target_value][sonos_type] = body
+				debug(string.format("body is %s",json.encode(body)))
+				if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
+					SonosDB[householdid][target_type][target_value][sonos_type] = body
+					SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+				else
+					if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] < seq_id ) then
+						SonosDB[householdid][target_type][target_value][sonos_type] = body
+						SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+					else
+						warning(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
+					end
+				end
 			end
 		end
 	end
@@ -394,7 +406,7 @@ local function getGroups(lul_device, hid )
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
 		for i,grp in pairs(response.groups) do
-			setDBValue(lul_device,hid,'groupId',grp.id,'core', grp )
+			setDBValue(lul_device,0,hid,'groupId',grp.id,'core', grp )
 		end
 		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Players", json.encode(response.players), lul_device)
@@ -409,7 +421,7 @@ local function getHouseholds(lul_device)
 	local response,msg = SonosHTTP(lul_device,"api.ws.sonos.com/control/api/v1/households","GET")
 	if (response ~=nil ) then
 		for i,household in pairs(response.households) do
-			setDBValue(lul_device,household.id)
+			setDBValue(lul_device,0,household.id)
 		end
 		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Households", json.encode(response.households), lul_device)
@@ -424,7 +436,7 @@ local function getFavorites(lul_device, hid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
 		for i,fav in pairs(response.items) do
-			setDBValue(lul_device,hid,'favorites',i,'favorite', fav )
+			setDBValue(lul_device,0,hid,'favorites',i,'favorite', fav )
 		end
 		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(response.items), lul_device)
@@ -452,7 +464,7 @@ local function setVolumeRelative( lul_device, gid, delta )
 	local householdid = findGroupHousehold(gid)
 	local curvol = getDBValue(lul_device,householdid,'groupId',gid,'groupVolume' )
 	curvol.volume = curvol.volume + delta
-	setDBValue(lul_device,householdid,'groupId',gid,'groupVolume', curvol )
+	setDBValue(lul_device,0,householdid,'groupId',gid,'groupVolume', curvol )
 
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/relative",gid)
 	local body = json.encode({
@@ -507,7 +519,7 @@ function refreshMetadata(data)
 			debug(string.format("metadata with %d messages",tablelength(arr)))			
 			for k,msg in pairs(arr) do
 				local obj = msg.data
-				setDBValue(lul_device,obj.householdid,obj.target_type,obj.target_value,obj.sonos_type,obj.body)
+				setDBValue(lul_device,tonumber(obj.seq_id),obj.householdid,obj.target_type,obj.target_value,obj.sonos_type,obj.body)
 			end
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
