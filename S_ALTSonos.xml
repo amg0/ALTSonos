@@ -35,6 +35,18 @@
             <defaultValue></defaultValue>
             <shortCode>lastVolume</shortCode>
         </stateVariable>	
+        <stateVariable sendEvents="no">
+            <name>playerID</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>playerid</shortCode>
+        </stateVariable>	
+        <stateVariable sendEvents="no">
+            <name>urlClip</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>urlclip</shortCode>
+        </stateVariable>	
 	</serviceStateTable>
     <actionList>
         <action>
@@ -132,6 +144,21 @@
 				<name>favID</name>
 				<direction>in</direction>
 				<relatedStateVariable>favid</relatedStateVariable>
+			</argument>
+            </argumentList>
+		</action>	
+		<action>
+			<name>AudioClip</name>
+            <argumentList>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>urlClip</name>
+				<direction>in</direction>
+				<relatedStateVariable>urlclip</relatedStateVariable>
 			</argument>
             </argumentList>
 		</action>	

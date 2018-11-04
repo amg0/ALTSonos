@@ -272,10 +272,11 @@ local function setDBValue(lul_device,householdid,target_type,target_value,sonos_
 	end
 end
 
-local function logSonosHTTP(request,code,headers)
+local function logSonosHTTP(request,code,headers,data)
 	debug(string.format("response request:%s",request))
 	debug(string.format("code:%s",code))
 	debug(string.format("headers:%s",json.encode(headers)))
+	debug(string.format("data:%s",json.encode(data)))
 end
 
 local function refreshToken( lul_device )
@@ -296,24 +297,25 @@ local function refreshToken( lul_device )
 	return response,msg
 end
 
-function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype)
+function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype,headers)
+	local verb = verb or "GET"
+	local url = "https://" .. path
 	body = body or ""
 	contenttype = contenttype or "application/x-www-form-urlencoded"
+	headers = headers or {}
+
 	if (b64credential==nil) then
 		local token = luup.variable_get(ALTSonos_SERVICE, "AccessToken", lul_device)	
 		b64credential = "Bearer ".. token
 	end
 
-	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or ""))
-	local url = "https://" .. path
-	local verb = verb or "GET"
+	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or "",contenttype or "", json.encode(headers)))
 	
-	local headers = {
-		["Authorization"] = b64credential,
-		["Content-Length"] = body:len(),
-		["Cache-Control"] =  'no-cache',
-		["Content-Type"] = contenttype,
-	}
+	headers["Authorization"] = b64credential
+	headers["Content-Length"] = body:len()
+	headers["Cache-Control"] =  'no-cache'
+	headers["Content-Type"] = contenttype
+	
 	debug(string.format("request headers:%s",json.encode(headers)))
 	local result = {}
 	local request, code, headers = https.request({
@@ -326,7 +328,9 @@ function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype)
 	})
 	
 	-- fail to connect
-	logSonosHTTP(request or 'nil',code,headers)
+	local data=table.concat(result)
+	logSonosHTTP(request or 'nil',code,headers,data or 'nil')
+	
 	if (request==nil) then
 		error(string.format("failed to connect to %s, http.request returned nil", url))
 		return nil,"failed to connect"
@@ -347,10 +351,6 @@ function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype)
 	
 	-- everything looks good
 	setVariableIfChanged(ALTSonos_SERVICE,"IconCode", 100, lul_device)
-
-	local data = table.concat(result)
-	debug(string.format("data:%s",data or ""))
-	
 	local response = json.decode(data)
 	return response,""
 end
@@ -539,6 +539,102 @@ local function loadFavorites(lul_device, gid, fid)
 
 	resetRefreshMetadataLoop(lul_device)
 	return response,msg
+end
+
+local function audioClip(lul_device, pid, urlClip )
+	debug(string.format("audioClip(%s,%s,%s)",lul_device, pid, urlClip))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/players/%s/audioClip",pid)
+	local body = json.encode({
+		name="altsonos audioClip",
+		appId="com.getvera.amg0.altsonos",
+		streamUrl=urlClip
+	})	
+
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	resetRefreshMetadataLoop(lul_device)
+	return response,msg
+end
+
+local function joinOrCreateSession(lul_device, gid )
+	debug(string.format("joinOrCreateSession(%s,%s)",lul_device, gid ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackSession/joinOrCreate",gid)
+	local body = json.encode({
+		appContext="altsonos_audioClip",
+		appId="com.getvera.amg0.altsonos"
+	})	
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	return response,msg
+end
+
+
+local function getPlaylist(lul_device,hid,playlistId)
+	debug(string.format("getPlaylist(%s,%s,%s)",lul_device, hid,playlistId ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/playlists/getPlaylist",hid)
+	local body = json.encode({
+		playlistId = playlistId
+	})	
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	return response,msg
+end
+
+local function getPlaylists(lul_device,hid)
+	debug(string.format("getPlaylists(%s,%s)",lul_device, hid ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/playlists",hid)
+	local response,msg = SonosHTTP(lul_device,cmd,"GET")
+	return response,msg
+end
+
+local function createSession(lul_device, gid )
+	debug(string.format("createSession(%s,%s)",lul_device, gid ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackSession",gid)
+	
+	local body = json.encode({
+		appContext="altsonos_audioClip",
+		appId="com.getvera.amg0.altsonos"
+	})	
+	local headers = {
+		-- namespace= "playbackSession:1",
+		-- command= "createSession",
+		-- "cmdId"= "123",
+		householdId= hid,
+		groupId= gid
+	}
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json',headers)
+	return response,msg
+end
+
+local function setPlayMode(lul_device, gid)
+	debug(string.format("setPlayMode(%s,%s)",lul_device, gid ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/playMode",gid)
+	local body = json.encode({
+		playModes = {
+			["repeat"] = false
+			-- repeatOne = false,
+			-- crossfade = false,
+			-- shuffle = false,
+		  }
+	})	
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	return response,msg
+end
+
+local function loadStreamUrl(lul_device, gid, streamUrl )
+	debug(string.format("loadStreamUrl(%s,%s,%s)",lul_device, gid , streamUrl ))
+	local response,msg = createSession(lul_device, gid )
+	if (response ~= nil) and (response.sessionId ~= nil) then
+		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
+		local body = json.encode({
+			streamUrl=streamUrl,
+			-- playOnCompletion=true
+		})	
+		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+		groupPlayPause(lul_device,"play",gid)
+		luup.sleep(2000)
+		groupPlayPause(lul_device,"pause",gid)
+		return response,msg	
+	end
+	warning("could not join or create a sonos session")
+	return nil,"could not join or create a sonos session"
 end
 
 function subscribeDeferred(data)

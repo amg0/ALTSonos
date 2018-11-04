@@ -200,7 +200,7 @@ var ALTSonos = (function(api,$) {
 			return (img==undefined) ? "" : ALTSonos.format("<img id='altsonos-img-{1}' style='height:100px;width:100px;' src='{0}'></img>",img,idx)
 		}
 		function getCmd(idx,group) {
-			var playStatus = group.playbackStatus.playbackState || group.core.playbackState
+			var playStatus = (group.playbackStatus) ? ( group.playbackStatus.playbackState || group.core.playbackState ) : "PLAYBACK_STATE_IDLE"
 			var cssplay = (playStatus=="PLAYBACK_STATE_PLAYING") ? "btn-success" : "btn-outline-secondary"
 			var csspause= (playStatus=="PLAYBACK_STATE_PLAYING") ? "btn-outline-secondary" : "btn-warning"
 			return "<span id='altsonos-cmd-"+idx+"'>"+ALTSonos.format(btnBar,group.core.id, cssplay, csspause)+"</span>"
@@ -287,20 +287,24 @@ var ALTSonos = (function(api,$) {
 						household = getHousehold(db)
 						groups = getGroups(household);
 						favorites = getFavorites(household);
-						if (JSON.stringify(oldgroups) == JSON.stringify(groups)) {
-							// groups did not change, we can be smarter
-							jQuery.each(groups, function(idx,groupkey) {
-								var group = household.groupId[groupkey]
-								jQuery('#altsonos-title-'+idx).replaceWith( getName(idx,group) )
-								var newimg = group.metadataStatus.currentItem.track.imageUrl
-								var oldimg = jQuery("#altsonos-img-"+idx).attr('src')
-								if (oldimg != newimg)
-									jQuery('#altsonos-img-'+idx).attr( 'src',newimg )
-								jQuery('#altsonos-vol-'+idx).text(group.groupVolume.volume)
-								jQuery('#altsonos-cmd-'+idx).replaceWith( getCmd(idx,group) )
-							})
-						} else {
-							jQuery("#altsonos-groupstbl").replaceWith(getHtml(db));
+						try {
+							if (JSON.stringify(oldgroups) == JSON.stringify(groups)) {
+								// groups did not change, we can be smarter
+								jQuery.each(groups, function(idx,groupkey) {
+									var group = household.groupId[groupkey]
+									jQuery('#altsonos-cmd-'+idx).replaceWith( getCmd(idx,group) )
+									jQuery('#altsonos-vol-'+idx).text(group.groupVolume.volume)
+									jQuery('#altsonos-title-'+idx).replaceWith( getName(idx,group) )
+									var newimg = group.metadataStatus.currentItem.track.imageUrl
+									var oldimg = jQuery("#altsonos-img-"+idx).attr('src')
+									if (oldimg != newimg)
+										jQuery('#altsonos-img-'+idx).attr( 'src',newimg )
+								})
+							} else {
+								jQuery("#altsonos-groupstbl").replaceWith(getHtml(db));
+							}
+						}
+						catch {
 						}
 						setTimeout( refreshHtml, 2000);
 					})

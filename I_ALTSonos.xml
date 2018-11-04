@@ -78,6 +78,14 @@
 			loadFavorites(lul_device, lul_settings.groupID, lul_settings.favID)
 			return 4,0
 			</job>
-		</action>	
+		</action>
+		<action>
+			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
+			<name>AudioClip</name>
+			<job>
+			loadStreamUrl(lul_device, lul_settings.groupID, lul_settings.urlClip )	
+			return 4,0
+			</job>
+		</action>
 	</actionList>
 </implementation>
