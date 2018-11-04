@@ -207,7 +207,10 @@ var ALTSonos = (function(api,$) {
 			var csspause= (on==true) ? "btn-outline-secondary" : "btn-warning"
 			return "<span id='altsonos-cmd-"+idx+"'>"+ALTSonos.format(btnBar,group.core.id, cssplay, csspause)+"</span>"
 		}
-		
+		function getVolume(idx,group) {
+			var volhtml = (group.groupVolume) ? ALTSonos.format(btnVol,idx,group.groupVolume.volume) : '?'
+			return "<span id='altsonos-vol-"+idx+"'>"+volhtml+"</span>"
+		}
 		fixUI7();
 		var url = buildHandlerUrl(deviceID,"GetDBInfo")
 		jQuery.get(url, function(data) {
@@ -248,7 +251,7 @@ var ALTSonos = (function(api,$) {
 						id: ALTSonos.format("<span title='{0}'>See</span>",group.core.id),
 						track: getName(idx,group), 
 						img: getImage(idx,group),
-						volume: (group.groupVolume) ? ALTSonos.format(btnVol,idx,group.groupVolume.volume) : '?',
+						volume: getVolume(idx,group),
 						favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.core.id),
 						cmd: getCmd(idx,group) // ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
 					})
@@ -258,7 +261,6 @@ var ALTSonos = (function(api,$) {
 				return html;
 			};
 			set_panel_html( "<div id='altsonos-main'>"+getHtml(db)+"</div>" );
-			// updateVolumes();
 			
 			function updateVolume(idx,group) {
 				// var household = getHousehold(db)
@@ -269,14 +271,6 @@ var ALTSonos = (function(api,$) {
 				})
 			};
 			
-			function updateVolumes() {
-				// var household = getHousehold(db)
-				// var groups = getGroups(household);
-				// var favorites = getFavorites(household);
-				jQuery.each( groups , function(idx,groupkey) {
-					updateVolume(idx,household.groupId[groupkey]);
-				})
-			};
 			function refreshHtml() {
 				if ( (jQuery("#altsonos-groupstbl").length >0) && (jQuery("#altsonos-groupstbl").is(":visible")) ){
 					var oldgroups = jQuery.map(jQuery("#altsonos-groupstbl tr td:nth-child(3) span"), function(elem) { return jQuery(elem).attr("title") } )
@@ -292,12 +286,10 @@ var ALTSonos = (function(api,$) {
 						try {
 							if (JSON.stringify(oldgroups) == JSON.stringify(groups)) {
 								// groups did not change, we can be smarter
-								console.log( "groups",groups )
 								jQuery.each(groups, function(idx,groupkey) {
-									console.log( "groupkey",groupkey )
 									var group = household.groupId[groupkey]
 									jQuery('#altsonos-cmd-'+idx).replaceWith( getCmd(idx,group) )
-									jQuery('#altsonos-vol-'+idx).text(group.groupVolume.volume)
+									jQuery('#altsonos-vol-'+idx).replaceWith( getVolume(idx,group) )
 									jQuery('#altsonos-title-'+idx).replaceWith( getName(idx,group) )
 									
 									var newimg = (group.metadataStatus.currentItem) ?  group.metadataStatus.currentItem.track.imageUrl : ""
@@ -310,7 +302,7 @@ var ALTSonos = (function(api,$) {
 							}
 						}
 						catch(e) {
-							console.log("exception:",e)
+							console.log("Controlled exception:",e)
 						}
 						setTimeout( refreshHtml, 2000);
 					})
