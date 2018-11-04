@@ -240,6 +240,16 @@ local function findGroupHousehold(gid)
 	return null
 end
 
+local function enumerateGroups()
+	local groupkeys = {}
+	for hid,household in pairs(SonosDB) do
+		for gid,group in pairs(household.groupId) do
+			table.insert(groupkeys,gid)
+		end
+	end
+	return groupkeys
+end
+
 local function getDBValue(lul_device,householdid,target_type,target_value,sonos_type )
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -627,7 +637,7 @@ function stopStreamUrl(data)
 	groupPlayPause(lul_device,"pause",gid)
 end	
 	
-local function loadStreamUrl(lul_device, gid, streamUrl )
+local function loadStreamUrlGid(lul_device, gid, streamUrl )
 	debug(string.format("loadStreamUrl(%s,%s,%s)",lul_device, gid , streamUrl ))
 	local response,msg = createSession(lul_device, gid )
 	if (response ~= nil) and (response.sessionId ~= nil) then
@@ -638,11 +648,24 @@ local function loadStreamUrl(lul_device, gid, streamUrl )
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
 		-- groupPlayPause(lul_device,"play",gid)
-		luup.call_delay("stopStreamUrl", 8, json.encode({lul_device=lul_device, gid=gid}))
+		luup.call_delay("stopStreamUrl", 10, json.encode({lul_device=lul_device, gid=gid}))
 		return response,msg	
 	end
 	warning("could not join or create a sonos session")
 	return nil,"could not join or create a sonos session"
+end
+
+local function loadStreamUrl(lul_device, gid, streamUrl )
+	debug(string.format("loadStreamUrl(%s,%s,%s)",lul_device, gid , streamUrl ))
+	if (gid=="ALL") then
+		for idx,gid in pairs(enumerateGroups()) do
+			loadStreamUrlGid(lul_device, gid, streamUrl )
+		end
+		return
+	else
+		-- TODO split groups by CSV and iterate for specified groups
+	end
+	return loadStreamUrlGid(lul_device, gid, streamUrl )
 end
 
 function subscribeDeferred(data)
