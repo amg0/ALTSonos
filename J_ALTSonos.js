@@ -149,7 +149,7 @@ var ALTSonos = (function(api,$) {
 		var btnVol = `
 			<div class="btn-group btn-group-sm btn-group" data-gidx="{0}" role="group" aria-label="Basic example">
 			  <button type="button" class="btn btn-outline-secondary altsonos-btn-plus"><i class="fa fa-plus fa-1" aria-hidden="true"></i></button>
-			  <button type="button" class="btn btn-outline-secondary altsonos-btn-vol"><span id='altsonos-vol-{0}'>{1}</span></button>
+			  <button type="button" class="btn btn-outline-secondary altsonos-btn-vol"><span id='altsonos-voltxt-{0}'>{1}</span></button>
 			  <button type="button" class="btn btn-outline-secondary altsonos-btn-minus"><i class="fa fa-minus fa-1" aria-hidden="true"></i></button>
 			</div>`
 					
@@ -267,7 +267,7 @@ var ALTSonos = (function(api,$) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
 				var result = jQuery.get(url,function(data) {
 					var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
-					jQuery("#altsonos-vol-"+ idx ).text(vol)
+					jQuery("#altsonos-voltxt-"+ idx ).text(vol)
 				})
 			};
 			
