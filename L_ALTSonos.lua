@@ -618,6 +618,15 @@ local function setPlayMode(lul_device, gid)
 	return response,msg
 end
 
+function stopStreamUrl(data)
+	debug(string.format("stopStreamUrl(%s)",data))
+	local obj = json.decode(data)
+	local obj = json.decode(data)
+	lul_device = tonumber(obj.lul_device)
+	gid = obj.gid
+	groupPlayPause(lul_device,"pause",gid)
+end	
+	
 local function loadStreamUrl(lul_device, gid, streamUrl )
 	debug(string.format("loadStreamUrl(%s,%s,%s)",lul_device, gid , streamUrl ))
 	local response,msg = createSession(lul_device, gid )
@@ -625,12 +634,11 @@ local function loadStreamUrl(lul_device, gid, streamUrl )
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
 		local body = json.encode({
 			streamUrl=streamUrl,
-			-- playOnCompletion=true
+			playOnCompletion=true
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-		groupPlayPause(lul_device,"play",gid)
-		luup.sleep(2000)
-		groupPlayPause(lul_device,"pause",gid)
+		-- groupPlayPause(lul_device,"play",gid)
+		luup.call_delay("stopStreamUrl", 8, json.encode({lul_device=lul_device, gid=gid}))
 		return response,msg	
 	end
 	warning("could not join or create a sonos session")
