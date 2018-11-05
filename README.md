@@ -81,8 +81,10 @@ Warning this plugin requires :
 `git clone https://github.com/amg0/ALTSonos/`
 
 6. Choose your region as best see fit. cf https://cloud.google.com/compute/docs/regions-zones/ and modify the region in the file ALTSonos/install.sh
-7. enter the following commands
+7. enter the following commands:
+
 `chmod a+x ALTSonos/install.sh`
+
 `./ALTSonos/install.sh`
 
 8. this should have created 3 cloud functions
