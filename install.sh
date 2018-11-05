@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # cd ALTSonos/
 # chmod a+x install.sh
 # echo $(DEVSHELL_PROJECT_ID)
