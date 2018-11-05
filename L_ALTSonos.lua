@@ -331,7 +331,7 @@ function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype,headers)
 		b64credential = "Bearer ".. token
 	end
 
-	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or "",contenttype or "", json.encode(headers)))
+	log(string.format("SonosHTTP(%s,%s,%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or "",contenttype or "", json.encode(headers)))
 	
 	headers["Authorization"] = b64credential
 	headers["Content-Length"] = body:len()
@@ -525,7 +525,7 @@ function refreshMetadata(data)
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
-		debug(string.format("refreshMetadata: received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))		
+		log(string.format("refreshMetadata: received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))		
 		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	else
 		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
