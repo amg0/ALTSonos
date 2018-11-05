@@ -1,8 +1,9 @@
+#!/bin/sh
 # cd ALTSonos/
 # chmod a+x install.sh
 # echo $(DEVSHELL_PROJECT_ID)
 # git clone https://github.com/amg0/ALTSonos/
-cd $HOME
+
 cd ALTSonos/CloudFunction/SonosEvent
 gcloud functions deploy sonosEvent --trigger-http --memory=128 --region=europe-west1
 cd ../VeraPull
