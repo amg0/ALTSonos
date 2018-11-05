@@ -76,19 +76,21 @@ Warning this plugin requires :
 1. Create a google account if required
 2. go to google cloud console https://console.cloud.google.com
 3. create a project
-4. Select Cloud Function in the top left hamburger menu
-5. per each folder, Create a new cloud function with the code file and package.json file in the CloudFunction folder , so that is 3 cloud functions
+4. open the google Cloud Shell ( buttons on the top menu bar )
+5. enter the following commands
+`git clone https://github.com/amg0/ALTSonos/`
+
+6. Choose your region as best see fit. cf https://cloud.google.com/compute/docs/regions-zones/ and modify the region in the file ALTSonos/install.sh
+7. enter the following commands
+`chmod a+x ALTSonos/install.sh`
+`./ALTSonos/install.sh`
+
+8. this should have created 3 cloud functions
 - SonosAuthorization
 - SonosEvent
 - VeraPull
 
-this can be done with the google cloud console,  or from the command line using the gcloud SDK ( from google ) and running it from folder where the cloud function code resides. 
-Choose your region as best see fit. cf https://cloud.google.com/compute/docs/regions-zones/
-example
-
-`gcloud functions deploy veraPull --trigger-http --memory=128 --region=europe-west1`
-
-6. note down the http trigger urls in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
+9. note down the http trigger urls in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
 
 
 #### Registration of the Application in Sonos developper portal
@@ -100,15 +102,4 @@ example
 #### Configuration of the ALT Sonos plugin in settings tab
 1. Enter the Key and the secret in the settings field
 2. Enter the Cloud Function trigger http url in the field : the 3 of them : SonosAuthorization, SonosEvent and VeraPull
-
-#### Initialization
-for now, some initialization is needed.
-run the SonosEvent and the VeraPull url with init=1 parameters
-`http://<...your url...>/SonosEvent?init=1`
-`http://<...your url...>/VeraPull?init=1`
-this will create the google pubsub topics and subscriptions that are required
-
-
-
-
 
