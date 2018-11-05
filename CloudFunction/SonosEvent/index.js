@@ -43,11 +43,7 @@ exports.sonosEvent = (req, res) => {
 	console.log( "headers:",JSON.stringify(req.headers));
 	console.log( "body:",JSON.stringify(req.body) );
 	console.log( "query:",JSON.stringify(req.query) );
-	if (req.headers['x-sonos-event-signature'] == undefined) {
-		console.log( "Event missing signature, rejected" )
-		res.status(500).send("");
-		return
-	}
+
 	if (req.query.init=='1') {
 		pubsub
 			.createTopic(topicname)
@@ -61,6 +57,11 @@ exports.sonosEvent = (req, res) => {
 				res.status(500).send("ko - failed to create topic "+topicname);
 			});		
 	} else {
+		if (req.headers['x-sonos-event-signature'] == undefined) {
+			console.log( "Event missing signature, rejected" )
+			res.status(500).send("");
+			return
+		}
 		var data = JSON.stringify( {  // JSON.stringify(req.headers);
 			seq_id : req.headers["x-sonos-event-seq-id"],
 			householdid : req.headers["x-sonos-household-id"],
