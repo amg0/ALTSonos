@@ -12,5 +12,5 @@ cd ../SonosAuthorization
 gcloud functions deploy sonosAuthorization --trigger-http --memory=128 --region=$MYREGION
 cd ..
 
-curl https://europe-west1-altui-cloud-function.cloudfunctions.net/sonosEvent?init=1
-curl https://europe-west1-altui-cloud-function.cloudfunctions.net/veraPull?init=1
+curl https://$MYREGION-altui-cloud-function.cloudfunctions.net/sonosEvent?init=1
+curl https://$MYREGION-altui-cloud-function.cloudfunctions.net/veraPull?init=1
