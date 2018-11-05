@@ -77,11 +77,14 @@ Warning this plugin requires :
 2. go to google cloud console https://console.cloud.google.com
 3. create a project
 4. open the google Cloud Shell ( buttons on the top menu bar )
+5. Choose your region (like europe-west1) as you best see fit. cf https://cloud.google.com/compute/docs/regions-zones/ and type:
+
+`export MYREGION=<yourchosenregion>`
+
 5. enter the following commands:
 
 `git clone https://github.com/amg0/ALTSonos/`
 
-6. Choose your region as best see fit. cf https://cloud.google.com/compute/docs/regions-zones/ and modify the region in the file ALTSonos/install.sh
 7. enter the following commands:
 
 `chmod a+x ALTSonos/install.sh`
