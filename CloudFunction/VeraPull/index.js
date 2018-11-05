@@ -107,7 +107,7 @@ exports.veraPull = (req, res) => {
 		  })
 		  .catch(err => {
 			console.error('ERROR:', err);
-			res.status(500).send("ko");
+			res.status(500).send("ko, failed to create subscription "+subscriptionname);
 		  });
 	} else {
 		// read a message
