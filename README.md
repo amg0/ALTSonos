@@ -81,11 +81,9 @@ Warning this plugin requires :
 
 `export MYREGION=<yourchosenregion>`
 
-5. enter the following commands:
+6. enter the following commands:
 
 `git clone https://github.com/amg0/ALTSonos/`
-
-7. enter the following commands:
 
 `chmod a+x ALTSonos/install.sh`
 
