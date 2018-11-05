@@ -8,7 +8,7 @@
 //https://192.168.1.17/port_3480/data_request?id=lr_DENON_Handler&command=AuthorizationCB&DeviceNum=264
 //https://192.168.1.17/port_3480/data_request?id=lr_DENON_Handler&command=EventCB&DeviceNum=264s
 
-exports.sonosCallback = (req, res) => {
+exports.sonosAuthorization = (req, res) => {
   let code = req.query.code || req.body.code || '';
   let state = req.query.state || req.body.state || '';
   console.log({code:code, state:state})
