@@ -269,7 +269,7 @@ local function getDBValue(lul_device,householdid,target_type,target_value,sonos_
 end
 
 local function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
-	debug(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	warning(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	seq_id = tonumber(seq_id or 0)
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -293,6 +293,14 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 		end
 	end
 end
+
+local function resetRefreshMetadataLoop(lul_device)
+	warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
+	SeqId = SeqId+1
+	SonosEventTimer = SonosEventTimerMin
+	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+end
+
 
 local function logSonosHTTP(request,code,headers,data)
 	debug(string.format("response request:%s",request))
@@ -531,12 +539,6 @@ function refreshMetadata(data)
 		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
 	end
 	return true
-end
-
-local function resetRefreshMetadataLoop(lul_device)
-	SeqId = SeqId+1
-	SonosEventTimer = SonosEventTimerMin
-	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 end
 
 -- cmd = "play" or "pause"
