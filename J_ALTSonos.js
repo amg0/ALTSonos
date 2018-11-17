@@ -301,11 +301,11 @@ var ALTSonos = (function(api,$) {
 						catch(e) {
 							console.log("Controlled exception:",e)
 						}
-						setTimeout( refreshHtml, 2000);
+						setTimeout( refreshHtml, 1000);
 					})
 				}
 			}
-			setTimeout( refreshHtml, 2000);
+			setTimeout( refreshHtml, 1000);
 			
 			function _Command(cmd,gid) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})

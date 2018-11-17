@@ -277,12 +277,12 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 		if (target_value ~= nil) then
 			SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 			if (sonos_type ~=nil) then
-				debug(string.format("body is %s",json.encode(body)))
+				warning(string.format("type:%s body is %s",sonos_type,json.encode(body)))
 				if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
 					SonosDB[householdid][target_type][target_value][sonos_type] = body
 					SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
 				else
-					if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] < seq_id ) then
+					if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] <= seq_id ) then
 						SonosDB[householdid][target_type][target_value][sonos_type] = body
 						SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
 					else
@@ -295,6 +295,7 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 end
 
 local function resetRefreshMetadataLoop(lul_device)
+	warning(string.format("resetRefreshMetadataLoop(%s), SeqId %s",lul_device,SeqId))
 	if (SonosEventTimer~=SonosEventTimerMin) then
 		warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
 		SeqId = SeqId+1
@@ -525,7 +526,7 @@ function refreshMetadata(data)
 		if (data =="[]") then
 			SonosEventTimer = increaseTimer(SonosEventTimer)
 		else
-			debug(string.format("received metadata message: %s",data))
+			log(string.format("received metadata message: %s",data))
 			local arr = json.decode(data)
 			debug(string.format("metadata with %d messages",tablelength(arr)))			
 			for k,msg in pairs(arr) do
@@ -535,7 +536,7 @@ function refreshMetadata(data)
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
-		log(string.format("refreshMetadata: received metadata -- rearming for %s seconds.  message: %s",SonosEventTimer,data))		
+		log(string.format("refreshMetadata: received metadata -- rearming for %s seconds.",SonosEventTimer))		
 		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	else
 		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
