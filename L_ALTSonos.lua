@@ -295,9 +295,11 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 end
 
 local function resetRefreshMetadataLoop(lul_device)
-	warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
-	SeqId = SeqId+1
-	SonosEventTimer = SonosEventTimerMin
+	if (SonosEventTimer~=SonosEventTimerMin) then
+		warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
+		SeqId = SeqId+1
+		SonosEventTimer = SonosEventTimerMin
+	end
 	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 end
 

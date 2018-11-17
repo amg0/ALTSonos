@@ -2,15 +2,21 @@
 # cd ALTSonos/
 # chmod a+x install.sh
 # echo $(DEVSHELL_PROJECT_ID)
-# git clone https://github.com/amg0/ALTSonos/
+
+export MYREGION = "europe-west1"
+export MYPROJECT = "altui-cloud-function"
+rm -rf ALTSonos
+git clone https://github.com/amg0/ALTSonos/
 
 cd ALTSonos/CloudFunction/SonosEvent
 gcloud functions deploy sonosEvent --trigger-http --memory=128 --region=$MYREGION
+
 cd ../VeraPull
 gcloud functions deploy veraPull --trigger-http --memory=128 --region=$MYREGION
+
 cd ../SonosAuthorization
 gcloud functions deploy sonosAuthorization --trigger-http --memory=128 --region=$MYREGION
-cd ..
 
-curl https://$MYREGION-altui-cloud-function.cloudfunctions.net/sonosEvent?init=1
-curl https://$MYREGION-altui-cloud-function.cloudfunctions.net/veraPull?init=1
+cd ..
+curl https://$MYREGION-$MYPROJECT.cloudfunctions.net/sonosEvent?init=1
+curl https://$MYREGION-$MYPROJECT.cloudfunctions.net/veraPull?init=1

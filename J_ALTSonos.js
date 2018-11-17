@@ -222,9 +222,6 @@ var ALTSonos = (function(api,$) {
 			favorites = getFavorites(household);
 			
 			function getHtml(db) {
-				// var household = getHousehold(db)
-				// var groups = getGroups(household);
-				// var favorites = getFavorites(household);
 				var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
 				
 				var favmap = jQuery.map( favorites, function(obj,id) {
@@ -292,7 +289,7 @@ var ALTSonos = (function(api,$) {
 									jQuery('#altsonos-vol-'+idx).replaceWith( getVolume(idx,group) )
 									jQuery('#altsonos-title-'+idx).replaceWith( getName(idx,group) )
 									
-									var newimg = (group.metadataStatus.currentItem) ?  group.metadataStatus.currentItem.track.imageUrl : ""
+									var newimg = (group.metadataStatus && group.metadataStatus.currentItem) ?  group.metadataStatus.currentItem.track.imageUrl : ""
 									var oldimg = jQuery("#altsonos-img-"+idx).attr('src')
 									if (oldimg != newimg)
 										jQuery('#altsonos-imgbox-'+idx).replaceWith( getImage(idx,group) )
