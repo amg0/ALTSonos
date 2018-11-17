@@ -1,14 +1,15 @@
 #!/bin/bash
+
+# Do these steps first manually from the console shell
+# rm -rf ALTSonos
+# git clone https://github.com/amg0/ALTSonos/
 # cd ALTSonos/
 # chmod a+x install.sh
-# echo $(DEVSHELL_PROJECT_ID)
 
 export MYREGION = "europe-west1"
 export MYPROJECT = "altui-cloud-function"
-rm -rf ALTSonos
-git clone https://github.com/amg0/ALTSonos/
 
-cd ALTSonos/CloudFunction/SonosEvent
+cd ~/ALTSonos/CloudFunction/SonosEvent
 gcloud functions deploy sonosEvent --trigger-http --memory=128 --region=$MYREGION
 
 cd ../VeraPull
