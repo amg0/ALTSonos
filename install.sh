@@ -6,8 +6,8 @@
 # cd ALTSonos/
 # chmod a+x install.sh
 
-export MYREGION = "europe-west1"
-export MYPROJECT = "altui-cloud-function"
+# export MYREGION = "europe-west1"
+# export MYPROJECT = "altui-cloud-function"
 
 cd ~/ALTSonos/CloudFunction/SonosEvent
 gcloud functions deploy sonosEvent --trigger-http --memory=128 --region=$MYREGION
