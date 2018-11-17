@@ -81,6 +81,8 @@ Warning this plugin requires :
 
 `export MYREGION=<yourchosenregion>`
 
+`export MYPROJECT=<yourprojectid>`
+
 6. enter the following commands:
 
 `git clone https://github.com/amg0/ALTSonos/`
@@ -94,7 +96,7 @@ Warning this plugin requires :
 - SonosEvent
 - VeraPull
 
-9. note down the http trigger urls in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
+9. please make a note of the http trigger urls in the GCP console Cloud Function page , under Trigger tab. you will need it in the VERA device settings tab
 
 
 #### Registration of the Application in Sonos developper portal
