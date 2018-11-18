@@ -83,9 +83,10 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
+const subcriber = new PubSub.v1.SubscriberClient({});
+
 exports.veraPull = (req, res) => {	
-	var client = new PubSub.v1.SubscriberClient({
-	});
+	var client = subcriber;
 	var formattedName = client.subscriptionPath(process.env.GCLOUD_PROJECT, subscriptionname);
 	var formattedTopic = client.topicPath(process.env.GCLOUD_PROJECT, topicname);
 
@@ -115,12 +116,14 @@ exports.veraPull = (req, res) => {
 		const request = {
 			subscription: formattedName,
 			maxMessages: maxMessages,
-			returnImmediately: true
+			returnImmediately: true,
 		};
+		console.log("before pull")
 		client
 			.pull(request)
 			.then(responses => {
 				// The first element of `responses` is a PullResponse object.
+				console.log("received responses")
 				const response = responses[0];
 				
 				// Initialize `messages` with message ackId, message data and `false` as
@@ -140,9 +143,11 @@ exports.veraPull = (req, res) => {
 					})
 				});
 				if (ackRequest.ackIds.length >0) {
+					console.log("before sending Ack")
 					client
 						.acknowledge(ackRequest)
 						.then(not_used => {
+							console.log("Acknowledges are done")
 							const idarray = result.map(m => m.pubsubMessageId);
 							console.log('%d Messages acknowledged: ',idarray.length,JSON.stringify(idarray));
 							res.status(200).send(JSON.stringify(result));
