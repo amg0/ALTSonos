@@ -143,7 +143,8 @@ exports.veraPull = (req, res) => {
 					client
 						.acknowledge(ackRequest)
 						.then(not_used => {
-							console.log('%d Messages acknowledged: ',ackRequest.ackIds.length,JSON.stringify(ackRequest.ackIds));
+							const idarray = result.map(m => m.pubsubMessageId);
+							console.log('%d Messages acknowledged: ',idarray.length,JSON.stringify(idarray));
 							res.status(200).send(JSON.stringify(result));
 						})
 						.catch(err => {
