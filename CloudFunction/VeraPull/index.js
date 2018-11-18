@@ -83,7 +83,8 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
-const subcriber = new PubSub.v1.SubscriberClient({});
+const subcriber = new PubSub.v1.SubscriberClient({
+});
 
 exports.veraPull = (req, res) => {	
 	var client = subcriber;
@@ -117,6 +118,9 @@ exports.veraPull = (req, res) => {
 			subscription: formattedName,
 			maxMessages: maxMessages,
 			returnImmediately: true,
+			options: {			
+				timeout:500	//does not appear to work
+			}
 		};
 		console.log("before pull")
 		client
