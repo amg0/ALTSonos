@@ -269,7 +269,7 @@ local function getDBValue(lul_device,householdid,target_type,target_value,sonos_
 end
 
 local function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
-	warning(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	debug(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	seq_id = tonumber(seq_id or 0)
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -277,7 +277,7 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 		if (target_value ~= nil) then
 			SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 			if (sonos_type ~=nil) then
-				warning(string.format("type:%s body is %s",sonos_type,json.encode(body)))
+				debug(string.format("type:%s body is %s",sonos_type,json.encode(body)))
 				if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
 					SonosDB[householdid][target_type][target_value][sonos_type] = body
 					SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
@@ -295,7 +295,7 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 end
 
 local function resetRefreshMetadataLoop(lul_device)
-	warning(string.format("resetRefreshMetadataLoop(%s), SeqId %s",lul_device,SeqId))
+	debug(string.format("resetRefreshMetadataLoop(%s), SeqId %s",lul_device,SeqId))
 	if (SonosEventTimer~=SonosEventTimerMin) then
 		warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
 		SeqId = SeqId+1
@@ -648,7 +648,7 @@ local function setPlayMode(lul_device, gid)
 end
 
 function stopStreamUrl(data)
-	debug(string.format("stopStreamUrl(%s)",data))
+	log(string.format("stopStreamUrl(%s)",data))
 	local obj = json.decode(data)
 	local obj = json.decode(data)
 	lul_device = tonumber(obj.lul_device)
@@ -657,7 +657,7 @@ function stopStreamUrl(data)
 end	
 	
 local function loadStreamUrlGid(lul_device, gid, streamUrl )
-	debug(string.format("loadStreamUrl(%s,%s,%s)",lul_device, gid , streamUrl ))
+	debug(string.format("loadStreamUrlGid(%s,%s,%s)",lul_device, gid , streamUrl ))
 	local response,msg = createSession(lul_device, gid )
 	if (response ~= nil) and (response.sessionId ~= nil) then
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
@@ -667,12 +667,12 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl )
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
 		-- groupPlayPause(lul_device,"play",gid)
-		luup.call_delay("stopStreamUrl", 10, json.encode({lul_device=lul_device, gid=gid}))
+		luup.call_delay("stopStreamUrl", 5, json.encode({lul_device=lul_device, gid=gid}))
 		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
 	warning("could not join or create a sonos session")
-	return nil,"could not join or create a sonos session"
+	return nil,"could not create a sonos session"
 end
 
 local function loadStreamUrl(lul_device, gid, streamUrl )

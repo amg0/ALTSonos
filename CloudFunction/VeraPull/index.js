@@ -112,7 +112,6 @@ exports.veraPull = (req, res) => {
 	} else {
 		// read a message
 		const maxMessages = 20;
-		const ackDeadlineSeconds = 60;
 		const request = {
 			subscription: formattedName,
 			maxMessages: maxMessages,
@@ -144,7 +143,7 @@ exports.veraPull = (req, res) => {
 					client
 						.acknowledge(ackRequest)
 						.then(not_used => {
-							console.log('Messages acknowledged: ',JSON.stringify(ackRequest.ackIds));
+							console.log('%d Messages acknowledged: ',ackRequest.ackIds.length,JSON.stringify(ackRequest.ackIds));
 							res.status(200).send(JSON.stringify(result));
 						})
 						.catch(err => {
