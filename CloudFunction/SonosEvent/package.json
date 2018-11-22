@@ -2,7 +2,8 @@
   "name": "sonos-event-callback",
   "version": "0.0.1",
   "dependencies": {
-	"@google-cloud/pubsub": "^0.20.1"
+  "@google-cloud/pubsub": "^0.20.1",
+  "@google-cloud/datastore": "^2.0.0"
   },
   "cloud-repo-tools": {
 	"requiresKeyFile": true,

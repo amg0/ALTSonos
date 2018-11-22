@@ -1,8 +1,8 @@
 gcloud config list
 gcloud beta pubsub topics create sonos-event
 topicname
-gcloud functions deploy sonosEvent --trigger-http --memory=128 --region=europe-west1
-gcloud functions deploy veraPull --trigger-http --memory=256 --region=europe-west1
+gcloud functions deploy sonosEvent --runtime nodejs8 --trigger-http --memory=256 --region=europe-west1
+gcloud functions deploy veraPull --runtime nodejs8 --trigger-http --memory=256 --region=europe-west1
 gcloud functions call publish --data "{\"topic\":\"sonos-event\",\"message\":\"Hello World!\"}"
 gcloud pubsub subscriptions create mySubscription --topic sonos-event
 gcloud pubsub subscriptions pull projects/altui-cloud-function/subscriptions/mySubscription --auto-ack

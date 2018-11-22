@@ -15,11 +15,15 @@
 const PubSub = require(`@google-cloud/pubsub`);
 const topicname = 'sonos-event'
 const subscriptionname = 'vera-pull'
-	
-function listTopicSubscriptions(topicName) {
-  // Creates a client
-  const pubsub = new PubSub();
+const pubsub = new PubSub();
+const subcriber = new PubSub.v1.SubscriberClient({ });
 
+// Instantiates a client
+const Datastore = require('@google-cloud/datastore');
+const datastore = Datastore();
+const key = datastore.key(["Counter", "PubSub"]);
+
+function listTopicSubscriptions(topicName) {
   // Lists all subscriptions for the topic
   pubsub
     .topic(topicName)
@@ -36,8 +40,6 @@ function listTopicSubscriptions(topicName) {
 }
 
 function createSubscription(topicName, subscriptionName, callback ) {
-  // Creates a client
-  const pubsub = new PubSub();
 
   // Creates a new subscription
   pubsub
@@ -56,8 +58,6 @@ function createSubscription(topicName, subscriptionName, callback ) {
 }
 
 function listenForMessages(subscriptionName, timeout) {
-  // Creates a client
-  const pubsub = new PubSub();
 
   // References an existing subscription
   const subscription = pubsub.subscription(subscriptionName);
@@ -83,8 +83,46 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
-const subcriber = new PubSub.v1.SubscriberClient({
-});
+function getCounter(callback) {
+	datastore
+		.get(key)
+		.then(([entity]) => {
+			// The get operation will not fail for a non-existent entity, it just
+			// returns an empty dictionary.
+			if (!entity) {
+				throw new Error(`No entity found for key ${key.path.join('/')}.`);
+			}
+			console.log("got entity %s",JSON.stringify(entity));
+			callback(entity.count);
+			//res.status(200).send(entity);
+		})
+		.catch((err) => {
+			console.error(err);
+			callback(null)
+			//res.status(500).send(err.message);
+		});
+};
+
+function setCounter(count,callback) {
+	const entity = {
+		key: key,
+		excludeFromIndexes: [
+			'count'
+		],
+		data: {
+			count: count
+		}
+	};
+	datastore.save(entity)
+	.then(() => {
+    console.log('Saved counter: %d', entity.data.count);
+		callback(entity.data.count);
+  })
+  .catch(err => {
+    console.error('ERROR:', err);
+		callback(null)
+  });
+};
 
 exports.veraPull = (req, res) => {	
 	var client = subcriber;
@@ -112,63 +150,77 @@ exports.veraPull = (req, res) => {
 			res.status(500).send("ko, failed to create subscription "+subscriptionname);
 		  });
 	} else {
+		
 		// read a message
 		const maxMessages = 20;
 		const request = {
 			subscription: formattedName,
 			maxMessages: maxMessages,
 			returnImmediately: true,
-			options: {			
-				timeout:500	//does not appear to work
-			}
 		};
 		console.log("before pull")
-		client
-			.pull(request)
-			.then(responses => {
-				// The first element of `responses` is a PullResponse object.
-				console.log("received responses")
-				const response = responses[0];
-				
-				// Initialize `messages` with message ackId, message data and `false` as
-				// processing state. Then, start each message in a worker function.
-				const ackRequest = {
-					subscription: formattedName,
-					ackIds: [],
-				};
-				var result = [];
-				response.receivedMessages.forEach(message => {
-					// console.log("message received:",message)
-					var buffer = Buffer.from(message.message.data);
-					ackRequest.ackIds.push(message.ackId);
-					result.push({
-						pubsubMessageId : message.message.messageId,
-						data : JSON.parse(buffer.toString())
+		getCounter( function(count) {
+			// return if no messages
+			if (count && count > 0) {
+				// messages , read pubsub
+				client
+					.pull(request)
+					.then(responses => {
+						// The first element of `responses` is a PullResponse object.
+						console.log("received responses")
+						const response = responses[0];
+		
+						getCounter( function(count) {
+							console.log("got counter %d",count)
+							setCounter( Math.max(0, (count || 0) - response.receivedMessages.length) , function(count) {
+								console.log("have set counter to %d",count)
+		
+								// Initialize `messages` with message ackId, message data and `false` as
+								// processing state. Then, start each message in a worker function.
+								const ackRequest = {
+									subscription: formattedName,
+									ackIds: [],
+								};
+								var result = [];
+								response.receivedMessages.forEach(message => {
+									// console.log("message received:",message)
+									var buffer = Buffer.from(message.message.data);
+									ackRequest.ackIds.push(message.ackId);
+									result.push({
+										pubsubMessageId : message.message.messageId,
+										data : JSON.parse(buffer.toString())
+									})
+								});
+								if (ackRequest.ackIds.length >0) {
+									console.log("before sending Ack")
+									client
+										.acknowledge(ackRequest)
+										.then(not_used => {
+											console.log("Acknowledges are done")
+											const idarray = result.map(m => m.pubsubMessageId);
+											console.log('%d Messages acknowledged: ',idarray.length,JSON.stringify(idarray));
+											res.status(200).send(JSON.stringify(result));
+										})
+										.catch(err => {
+											console.error(err);
+											res.status(500).send("ko");
+										});
+								} else {
+									// console.log('no messages were received' );
+									res.status(200).send("[]");
+								}
+							})
+						})	
 					})
-				});
-				if (ackRequest.ackIds.length >0) {
-					console.log("before sending Ack")
-					client
-						.acknowledge(ackRequest)
-						.then(not_used => {
-							console.log("Acknowledges are done")
-							const idarray = result.map(m => m.pubsubMessageId);
-							console.log('%d Messages acknowledged: ',idarray.length,JSON.stringify(idarray));
-							res.status(200).send(JSON.stringify(result));
-						})
-						.catch(err => {
-							console.error(err);
-							res.status(500).send("ko");
-						});
-				} else {
-					// console.log('no messages were received' );
-					res.status(200).send("[]");
-				}
-			})
-			.catch(err => {
-				console.error('ERROR:', err);
-				res.status(500).send("ko");
-			});
+					.catch(err => {
+						console.error('ERROR:', err);
+						res.status(500).send("ko");
+					});
+			} else {
+				// no message, return immediately
+				res.status(200).send("[]");
+			}
+		});
 	}
 	return;
 };

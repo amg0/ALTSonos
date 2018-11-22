@@ -269,7 +269,7 @@ local function getDBValue(lul_device,householdid,target_type,target_value,sonos_
 end
 
 local function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
-	debug(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	log(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	seq_id = tonumber(seq_id or 0)
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -526,7 +526,7 @@ function refreshMetadata(data)
 		if (data =="[]") then
 			SonosEventTimer = increaseTimer(SonosEventTimer)
 		else
-			log(string.format("received metadata message: %s",data))
+			debug(string.format("received metadata message: %s",data))
 			local arr = json.decode(data)
 			debug(string.format("metadata with %d messages",tablelength(arr)))			
 			for k,msg in pairs(arr) do
@@ -536,10 +536,10 @@ function refreshMetadata(data)
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
-		log(string.format("refreshMetadata: received metadata -- rearming for %s seconds.",SonosEventTimer))		
+		debug(string.format("refreshMetadata: received metadata -- rearming for %s seconds.",SonosEventTimer))		
 		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	else
-		warning(string.format("luup.variable_get(%s) returned a bad code: %d", url,code))
+		warning(string.format("luup.variable_get(%s) returned a bad code: %d , result:%s", url,code,result or 'nil'))
 	end
 	return true
 end
@@ -648,7 +648,7 @@ local function setPlayMode(lul_device, gid)
 end
 
 function stopStreamUrl(data)
-	log(string.format("stopStreamUrl(%s)",data))
+	debug(string.format("stopStreamUrl(%s)",data))
 	local obj = json.decode(data)
 	local obj = json.decode(data)
 	lul_device = tonumber(obj.lul_device)
@@ -738,7 +738,7 @@ function switch( command, actiontable)
 	if ( actiontable[command]~=nil ) then
 		return actiontable[command]
 	end
-	log("myALTSonos_Handler:Unknown command received:"..command.." was called. Default function")
+	debug("myALTSonos_Handler:Unknown command received:"..command.." was called. Default function")
 	return actiontable["default"]
 end
 
