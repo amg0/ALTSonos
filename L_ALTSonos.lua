@@ -291,6 +291,8 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 				end
 			end
 		end
+	else
+		SonosDB[householdid] = {}
 	end
 end
 
