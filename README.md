@@ -108,6 +108,9 @@ Warning this plugin requires :
 4. Click Add a redirect URL and enter your google cloud functions http trigger url : one for SonosAuthorization, the other one for SonosEvent
 
 #### Configuration of the ALT Sonos plugin in settings tab
-1. Enter the Key and the secret in the settings field
-2. Enter the Cloud Function trigger http url in the field : the 3 of them : SonosAuthorization, SonosEvent and VeraPull
+0. You basically download the files from github ( zip file ) , then open the zip  extract all files.  
+1. in VERA UI7 go to Apps/Develop App chose "Lua files", make sure the restart checkbox is checked.  drag and drop all files you extracted from the zip in the dotted rectable area,  
+2. let it upload and reload luuP
+3. the plugin settings are then in the usual place under the ALTSONOS plugin settings screen : Enter the Key and the secret in the settings field
+4. Enter the Cloud Function trigger http url in the field : the 3 of them : SonosAuthorization, SonosEvent and VeraPull
 
