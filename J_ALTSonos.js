@@ -353,14 +353,6 @@ var ALTSonos = (function(api,$) {
 				.on('click',".altsonos-btn-play",_onPlay)
 				.on('click',".altsonos-btn-next",_onNext)
 				.on('click',".altsonos-btn-fav",_onFav)
-				
-			// jQuery(".altsonos-btn-plus").click(_onPlus)
-			// jQuery(".altsonos-btn-minus").click(_onMinus)
-			// jQuery(".altsonos-btn-prev").click(_onPrev)
-			// jQuery(".altsonos-btn-pause").click(_onPause)
-			// jQuery(".altsonos-btn-play").click(_onPlay)
-			// jQuery(".altsonos-btn-next").click(_onNext)
-			// jQuery(".altsonos-btn-fav").click(_onFav)
 		});						
 	};
 	
