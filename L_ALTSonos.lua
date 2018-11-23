@@ -23,6 +23,7 @@ local https = require ("ssl.https")
 local SonosEventTimer = 2
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
+local SonosEventDecayCount = 3
 local SonosDB = {}
 local SeqId = 0 	-- for changing timer duration of pending calldelay ...
 
@@ -506,7 +507,7 @@ local counter = 0
 local function increaseTimer(current)
 	local result = current
 	counter= counter+1
-	if (counter>5) then
+	if (counter>SonosEventDecayCount) then
 		counter = 0
 		result = math.min( 2*SonosEventTimer , SonosEventTimerMax )
 	end

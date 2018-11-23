@@ -115,13 +115,13 @@ function setCounter(count,callback) {
 	};
 	datastore.save(entity)
 	.then(() => {
-    console.log('Saved counter: %d', entity.data.count);
+		console.log('Saved counter: %d', entity.data.count);
 		callback(entity.data.count);
-  })
-  .catch(err => {
-    console.error('ERROR:', err);
+	})
+	.catch(err => {
+		console.error('ERROR:', err);
 		callback(null)
-  });
+	});
 };
 
 exports.veraPull = (req, res) => {	
@@ -171,10 +171,12 @@ exports.veraPull = (req, res) => {
 						const response = responses[0];
 		
 						getCounter( function(count) {
-							console.log("got counter %d",count)
-							setCounter( Math.max(0, (count || 0) - response.receivedMessages.length) , function(count) {
-								console.log("have set counter to %d",count)
-		
+							var newcount = 0;
+							console.log("got counter %d",count)							
+							if (response.receivedMessages.length>0) {
+								newcount = Math.max(0, (count || 0) - response.receivedMessages.length)
+							}
+							setCounter( newcount, function(count) {		
 								// Initialize `messages` with message ackId, message data and `false` as
 								// processing state. Then, start each message in a worker function.
 								const ackRequest = {
