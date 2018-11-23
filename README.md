@@ -76,6 +76,7 @@ Warning this plugin requires :
 1. Create a google account if required
 2. go to google cloud console https://console.cloud.google.com
 3. create a project
+4. go to DataStore page and enable the legacy datastore in the project
 4. open the google Cloud Shell ( buttons on the top menu bar )
 5. Choose your region (like europe-west1) as you best see fit. cf https://cloud.google.com/compute/docs/regions-zones/ and type:
 
