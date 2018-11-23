@@ -70,6 +70,7 @@ tbd
 ### Installation
 Warning this plugin requires :
 - 3 google cloud function ( code in CloudFunction folder ) and a google PubSub Topic & subscription.  you have million of call per month as a free tier so that should not cost too much if any
+- a google datastore ( serverless service in google cloud platform )
 - a registration for a client ID, and a client secret on the Sonos developper portal https://developer.sonos.com/
 
 #### Google Cloud Function
