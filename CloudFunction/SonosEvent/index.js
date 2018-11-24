@@ -40,45 +40,40 @@ function listAllTopics() {
   // [END pubsub_list_topics]
 }
 
-function getCounter(callback) {
-	datastore
-		.get(key)
-		.then(([entity]) => {
-			// The get operation will not fail for a non-existent entity, it just
-			// returns an empty dictionary.
-			if (!entity) {
-				throw new Error(`No entity found for key ${key.path.join('/')}.`);
-			}
-			console.log("got entity %s",JSON.stringify(entity));
-			callback(entity.count);
-			//res.status(200).send(entity);
-		})
-		.catch((err) => {
-			console.error(err);
-			callback(null)
-			//res.status(500).send(err.message);
-		});
+async function getCounter() {
+	try {
+		const [entity] = await datastore.get(key)
+		if (!entity) {
+			throw new Error(`No entity found for key ${key.path.join('/')}.`);
+		}
+		console.log("got entity %s",JSON.stringify(entity));
+		return entity.count
+	}
+	catch (err) {
+		console.error(err);
+		return null
+	}
 };
 
-function setCounter(count,callback) {
-	const entity = {
-		key: key,
-		excludeFromIndexes: [
-			'count'
-		],
-		data: {
-			count: count
-		}
-	};
-	datastore.save(entity)
-	.then(() => {
-    console.log('Saved counter: %d', entity.data.count);
-		callback(entity.data.count);
-  })
-  .catch(err => {
-    console.error('ERROR:', err);
-		callback(null)
-  });
+async function setCounter(count) {
+	try {
+		const entity = {
+			key: key,
+			excludeFromIndexes: [
+				'count'
+			],
+			data: {
+				count: count
+			}
+		};
+		await datastore.save(entity)
+		console.log('Saved counter: %d', entity.data.count);
+		return entity.data.count
+	} 
+	catch(err) {
+		console.error('ERROR:', err);
+		return null;
+	}
 };
 
 exports.sonosEvent = (req, res) => {
@@ -125,8 +120,10 @@ exports.sonosEvent = (req, res) => {
 			.publish(dataBuffer)
 			.then(messageId => {
 				console.log(`Message ${messageId} published.`);
-				getCounter( function(count) {
-					setCounter( (count || 0) + 1 , function() {
+				getCounter()
+				.then(count=>{
+					setCounter( (count || 0) + 1 )
+					.then( () => {
 						res.status(200).send("ok - "+messageId);
 					})
 				})
