@@ -87,6 +87,8 @@ Warning this plugin requires :
 
 6. enter the following commands:
 
+`rm -rf ALTSonos`
+
 `git clone https://github.com/amg0/ALTSonos/`
 
 `chmod a+x ALTSonos/install.sh`
