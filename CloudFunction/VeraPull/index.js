@@ -87,7 +87,18 @@ async function getCounter() {
 	try {
 		const [entity] = await datastore.get(key)
 		if (!entity) {
-			throw new Error(`No entity found for key ${key.path.join('/')}.`);
+			console.log(`Creating new entity for key ${key.path.join('/')}.`);
+			const entity = {
+				key: key,
+				excludeFromIndexes: [
+					'count'
+				],
+				data: {
+					count: 0
+				}
+			};
+			await datastore.save(entity)
+			return 0
 		}
 		console.log("got entity %s",JSON.stringify(entity));
 		return entity.count
