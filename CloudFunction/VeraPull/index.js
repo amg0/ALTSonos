@@ -16,7 +16,7 @@ const PubSub = require(`@google-cloud/pubsub`);
 const topicname = 'sonos-event'
 const subscriptionname = 'vera-pull'
 const pubsub = new PubSub();
-const subcriber = new PubSub.v1.SubscriberClient({ });
+const client = new PubSub.v1.SubscriberClient({ });
 
 // Instantiates a client
 const Datastore = require('@google-cloud/datastore');
@@ -119,14 +119,14 @@ async function setCounter(count) {
 	}
 };
 
-function acknowledgeMessages(formattedName, response, client, res) {
+async function acknowledgeMessages(formattedName, response) {
+	var result = [];
 	const ackRequest = {
 		subscription: formattedName,
 		ackIds: [],
 	};
-	var result = [];
+
 	response.receivedMessages.forEach(message => {
-		// console.log("message received:",message)
 		var buffer = Buffer.from(message.message.data);
 		var item = {
 			pubsubMessageId: message.message.messageId,
@@ -136,46 +136,28 @@ function acknowledgeMessages(formattedName, response, client, res) {
 		ackRequest.ackIds.push(message.ackId);
 		result.push(item);
 	});
+
 	if (ackRequest.ackIds.length > 0) {
-		client
-			.acknowledge(ackRequest)
-			.then(not_used => {
-				const idarray = result.map(m => m.pubsubMessageId);
-				console.log('%d Messages acknowledged: ', idarray.length, JSON.stringify(idarray));
-				res.status(200).send(JSON.stringify(result));
-			})
-			.catch(err => {
-				console.error(err);
-				res.status(500).send("ko");
-			});
+		await client.acknowledge(ackRequest)	// will throw an exception in case of error, which will reject the async premise
+		const idarray = result.map(m => m.pubsubMessageId);
+		console.log('%d Messages acknowledged: ', idarray.length, JSON.stringify(idarray));
 	}
-	else {
-		// console.log('no messages were received' );
-		res.status(200).send("[]");
-	}
+
+	return result
 }
 
-
-function initialize(formattedName, formattedTopic, client, res) {
-	var request = {
+async function initialize(formattedName, formattedTopic) {
+	const request = {
 		name: formattedName,
 		topic: formattedTopic,
 	};
-	client.createSubscription(request)
-		.then(responses => {
-			var subscription = responses[0];
-			// doThingsWith(subscription)
-			console.log('Subscription created:', subscriptionname);
-			res.status(200).send("ok");
-		})
-		.catch(err => {
-			console.error('ERROR:', err);
-			res.status(500).send("ko, failed to create subscription " + subscriptionname);
-		});
+	var responses = await client.createSubscription(request)
+	var subscription = responses[0];
+	console.log('Subscription created:', subscriptionname);
+	return responses
 }
 
 exports.veraPull = (req, res) => {	
-	var client = subcriber;
 	var formattedName = client.subscriptionPath(process.env.GCLOUD_PROJECT, subscriptionname);
 	var formattedTopic = client.topicPath(process.env.GCLOUD_PROJECT, topicname);
 
@@ -183,7 +165,14 @@ exports.veraPull = (req, res) => {
 	console.log( "body:",JSON.stringify(req.body) );
 	
 	if (req.query.init=='1') {
-		initialize(formattedName, formattedTopic, client, res)
+		initialize(formattedName, formattedTopic)
+		.then(responses => {
+			res.status(200).send("ok");
+		})
+		.catch(err => {
+			console.error('ERROR:', err);
+			res.status(500).send("ko, failed to create subscription " + subscriptionname);
+		});
 	} else {
 		// read a message
 		const maxMessages = 20;
@@ -198,29 +187,35 @@ exports.veraPull = (req, res) => {
 			// return if no messages
 			if (count && count > 0) {
 				// messages , read pubsub
-				client
-					.pull(request)
-					.then(responses => {
-						// The first element of `responses` is a PullResponse object.
-						const response = responses[0];
-						getCounter()
-						.then ( count => {
-							var newcount = 0;					
-							if (response.receivedMessages.length>0) {
-								newcount = Math.max(0, (count || 0) - response.receivedMessages.length)
-							}
-							setCounter( newcount )
-							.then( () => {
-								// Initialize `messages` with message ackId, message data and `false` as
-								// processing state. Then, start each message in a worker function.
-								acknowledgeMessages(formattedName, response, client, res);
+				client.pull(request)
+				.then(responses => {
+					// The first element of `responses` is a PullResponse object.
+					const response = responses[0];
+					getCounter()
+					.then ( count => {
+						var newcount = 0;					
+						if (response.receivedMessages.length>0) {
+							newcount = Math.max(0, (count || 0) - response.receivedMessages.length)
+						}
+						setCounter( newcount )
+						.then( () => {
+							// Initialize `messages` with message ackId, message data and `false` as
+							// processing state. Then, start each message in a worker function.
+							acknowledgeMessages(formattedName, response)
+							.then( result => {
+								res.status(200).send(JSON.stringify(result));
+							})
+							.catch( err=>{
+								console.error(err);
+								res.status(500).send("ko");
 							})
 						})
 					})
-					.catch(err => {
-						console.error('ERROR:', err);
-						res.status(500).send("ko");
-					});
+				})
+				.catch(err => {
+					console.error('ERROR:', err);
+					res.status(500).send("ko");
+				});
 			} else {
 				// no message, return immediately
 				res.status(200).send("[]");
