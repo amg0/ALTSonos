@@ -119,6 +119,60 @@ async function setCounter(count) {
 	}
 };
 
+function acknowledgeMessages(formattedName, response, client, res) {
+	const ackRequest = {
+		subscription: formattedName,
+		ackIds: [],
+	};
+	var result = [];
+	response.receivedMessages.forEach(message => {
+		// console.log("message received:",message)
+		var buffer = Buffer.from(message.message.data);
+		var item = {
+			pubsubMessageId: message.message.messageId,
+			data: JSON.parse(buffer.toString())
+		};
+		console.log( JSON.stringify(item.data) )
+		ackRequest.ackIds.push(message.ackId);
+		result.push(item);
+	});
+	if (ackRequest.ackIds.length > 0) {
+		client
+			.acknowledge(ackRequest)
+			.then(not_used => {
+				const idarray = result.map(m => m.pubsubMessageId);
+				console.log('%d Messages acknowledged: ', idarray.length, JSON.stringify(idarray));
+				res.status(200).send(JSON.stringify(result));
+			})
+			.catch(err => {
+				console.error(err);
+				res.status(500).send("ko");
+			});
+	}
+	else {
+		// console.log('no messages were received' );
+		res.status(200).send("[]");
+	}
+}
+
+
+function initialize(formattedName, formattedTopic, client, res) {
+	var request = {
+		name: formattedName,
+		topic: formattedTopic,
+	};
+	client.createSubscription(request)
+		.then(responses => {
+			var subscription = responses[0];
+			// doThingsWith(subscription)
+			console.log('Subscription created:', subscriptionname);
+			res.status(200).send("ok");
+		})
+		.catch(err => {
+			console.error('ERROR:', err);
+			res.status(500).send("ko, failed to create subscription " + subscriptionname);
+		});
+}
 
 exports.veraPull = (req, res) => {	
 	var client = subcriber;
@@ -129,22 +183,7 @@ exports.veraPull = (req, res) => {
 	console.log( "body:",JSON.stringify(req.body) );
 	
 	if (req.query.init=='1') {
-		var request = {
-			name: formattedName,
-			topic: formattedTopic,
-			//An empty pushConfig signifies that the subscriber will pull and ack messages using API methods.
-		};
-		client.createSubscription(request)
-		  .then(responses => {
-			var subscription = responses[0];
-			// doThingsWith(subscription)
-			console.log('Subscription created:', subscriptionname);
-			res.status(200).send("ok");
-		  })
-		  .catch(err => {
-			console.error('ERROR:', err);
-			res.status(500).send("ko, failed to create subscription "+subscriptionname);
-		  });
+		initialize(formattedName, formattedTopic, client, res)
 	} else {
 		// read a message
 		const maxMessages = 20;
@@ -153,7 +192,7 @@ exports.veraPull = (req, res) => {
 			maxMessages: maxMessages,
 			returnImmediately: true,
 		};
-		console.log("before pull")
+
 		getCounter()
 		.then( count => {
 			// return if no messages
@@ -163,13 +202,10 @@ exports.veraPull = (req, res) => {
 					.pull(request)
 					.then(responses => {
 						// The first element of `responses` is a PullResponse object.
-						console.log("received responses")
 						const response = responses[0];
-		
 						getCounter()
 						.then ( count => {
-							var newcount = 0;
-							console.log("got counter %d",count)							
+							var newcount = 0;					
 							if (response.receivedMessages.length>0) {
 								newcount = Math.max(0, (count || 0) - response.receivedMessages.length)
 							}
@@ -177,38 +213,7 @@ exports.veraPull = (req, res) => {
 							.then( () => {
 								// Initialize `messages` with message ackId, message data and `false` as
 								// processing state. Then, start each message in a worker function.
-								const ackRequest = {
-									subscription: formattedName,
-									ackIds: [],
-								};
-								var result = [];
-								response.receivedMessages.forEach(message => {
-									// console.log("message received:",message)
-									var buffer = Buffer.from(message.message.data);
-									ackRequest.ackIds.push(message.ackId);
-									result.push({
-										pubsubMessageId : message.message.messageId,
-										data : JSON.parse(buffer.toString())
-									})
-								});
-								if (ackRequest.ackIds.length >0) {
-									console.log("before sending Ack")
-									client
-										.acknowledge(ackRequest)
-										.then(not_used => {
-											console.log("Acknowledges are done")
-											const idarray = result.map(m => m.pubsubMessageId);
-											console.log('%d Messages acknowledged: ',idarray.length,JSON.stringify(idarray));
-											res.status(200).send(JSON.stringify(result));
-										})
-										.catch(err => {
-											console.error(err);
-											res.status(500).send("ko");
-										});
-								} else {
-									// console.log('no messages were received' );
-									res.status(200).send("[]");
-								}
+								acknowledgeMessages(formattedName, response, client, res);
 							})
 						})
 					})
@@ -224,3 +229,4 @@ exports.veraPull = (req, res) => {
 	}
 	return;
 };
+
