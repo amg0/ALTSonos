@@ -83,21 +83,25 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
+async function createCounter() {
+	console.log(`Creating new entity for key ${key.path.join('/')}.`);
+	const entity = {
+		key: key,
+		excludeFromIndexes: [
+			'count'
+		],
+		data: {
+			count: 0
+		}
+	};
+	await datastore.insert(entity);
+}
+
 async function getCounter() {
 	try {
 		const [entity] = await datastore.get(key)
 		if (!entity) {
-			console.log(`Creating new entity for key ${key.path.join('/')}.`);
-			const entity = {
-				key: key,
-				excludeFromIndexes: [
-					'count'
-				],
-				data: {
-					count: 0
-				}
-			};
-			await datastore.save(entity)
+			await createCounter();
 			return 0
 		}
 		console.log("got entity %s",JSON.stringify(entity));
@@ -165,6 +169,8 @@ async function initialize(formattedName, formattedTopic) {
 	var responses = await client.createSubscription(request)
 	var subscription = responses[0];
 	console.log('Subscription created:', subscriptionname);
+	await createCounter();
+	console.log('datastore counter created');
 	return responses
 }
 
