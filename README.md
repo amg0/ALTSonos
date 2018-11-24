@@ -118,4 +118,8 @@ Warning this plugin requires :
 7. let vera reload luup ( or force a reload )
 8. the plugin settings are then in the usual place under the ALTSONOS plugin settings screen : Enter the Key and the secret in the settings field
 9. Enter the Cloud Function trigger http url in the field : the 3 of them : SonosAuthorization, SonosEvent and VeraPull
+10. reload luup
+11. come back to ALTSONOS setting pages,  the very first time you should have a login button to log to Sonos cloud. Click on it
+12. follow the OAuth process ( login, then user consent screen ) down to the end when it says you can close the window
+13. reload luup
 

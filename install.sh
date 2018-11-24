@@ -10,13 +10,13 @@
 # export MYPROJECT = "altui-cloud-function"
 
 cd ~/ALTSonos/CloudFunction/SonosEvent
-gcloud functions deploy sonosEvent --trigger-http --memory=128 --region=$MYREGION
+gcloud functions deploy sonosEvent --runtime nodejs8 --trigger-http --memory=256 --region=$MYREGION
 
 cd ../VeraPull
-gcloud functions deploy veraPull --trigger-http --memory=128 --region=$MYREGION
+gcloud functions deploy veraPull --runtime nodejs8 --trigger-http --memory=256 --region=$MYREGION
 
 cd ../SonosAuthorization
-gcloud functions deploy sonosAuthorization --trigger-http --memory=128 --region=$MYREGION
+gcloud functions deploy sonosAuthorization --runtime nodejs8 --trigger-http --memory=128 --region=$MYREGION
 
 cd ..
 curl https://$MYREGION-$MYPROJECT.cloudfunctions.net/sonosEvent?init=1
