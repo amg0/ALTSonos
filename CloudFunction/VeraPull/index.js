@@ -84,7 +84,7 @@ function listenForMessages(subscriptionName, timeout) {
 }
 
 async function createCounter() {
-	console.log(`Creating new entity for key ${key.path.join('/')}.`);
+	console.log(`Creating new datastore entity for key ${key.path.join('/')}.`);
 	const entity = {
 		key: key,
 		excludeFromIndexes: [
@@ -169,8 +169,7 @@ async function initialize(formattedName, formattedTopic) {
 	var responses = await client.createSubscription(request)
 	var subscription = responses[0];
 	console.log('Subscription created:', subscriptionname);
-	await createCounter();
-	console.log('datastore counter created');
+	await getCounter();
 	return responses
 }
 
