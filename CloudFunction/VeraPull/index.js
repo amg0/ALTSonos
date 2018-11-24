@@ -83,46 +83,42 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
-function getCounter(callback) {
-	datastore
-		.get(key)
-		.then(([entity]) => {
-			// The get operation will not fail for a non-existent entity, it just
-			// returns an empty dictionary.
-			if (!entity) {
-				throw new Error(`No entity found for key ${key.path.join('/')}.`);
-			}
-			console.log("got entity %s",JSON.stringify(entity));
-			callback(entity.count);
-			//res.status(200).send(entity);
-		})
-		.catch((err) => {
-			console.error(err);
-			callback(null)
-			//res.status(500).send(err.message);
-		});
+async function getCounter() {
+	try {
+		const [entity] = await datastore.get(key)
+		if (!entity) {
+			throw new Error(`No entity found for key ${key.path.join('/')}.`);
+		}
+		console.log("got entity %s",JSON.stringify(entity));
+		return entity.count
+	}
+	catch (err) {
+		console.error(err);
+		return null
+	}
 };
 
-function setCounter(count,callback) {
-	const entity = {
-		key: key,
-		excludeFromIndexes: [
-			'count'
-		],
-		data: {
-			count: count
-		}
-	};
-	datastore.save(entity)
-	.then(() => {
+async function setCounter(count) {
+	try {
+		const entity = {
+			key: key,
+			excludeFromIndexes: [
+				'count'
+			],
+			data: {
+				count: count
+			}
+		};
+		await datastore.save(entity)
 		console.log('Saved counter: %d', entity.data.count);
-		callback(entity.data.count);
-	})
-	.catch(err => {
+		return entity.data.count
+	} 
+	catch(err) {
 		console.error('ERROR:', err);
-		callback(null)
-	});
+		return null;
+	}
 };
+
 
 exports.veraPull = (req, res) => {	
 	var client = subcriber;
@@ -150,7 +146,6 @@ exports.veraPull = (req, res) => {
 			res.status(500).send("ko, failed to create subscription "+subscriptionname);
 		  });
 	} else {
-		
 		// read a message
 		const maxMessages = 20;
 		const request = {
@@ -159,7 +154,8 @@ exports.veraPull = (req, res) => {
 			returnImmediately: true,
 		};
 		console.log("before pull")
-		getCounter( function(count) {
+		getCounter()
+		.then( count => {
 			// return if no messages
 			if (count && count > 0) {
 				// messages , read pubsub
@@ -170,13 +166,15 @@ exports.veraPull = (req, res) => {
 						console.log("received responses")
 						const response = responses[0];
 		
-						getCounter( function(count) {
+						getCounter()
+						.then ( count => {
 							var newcount = 0;
 							console.log("got counter %d",count)							
 							if (response.receivedMessages.length>0) {
 								newcount = Math.max(0, (count || 0) - response.receivedMessages.length)
 							}
-							setCounter( newcount, function(count) {		
+							setCounter( newcount )
+							.then( () => {
 								// Initialize `messages` with message ackId, message data and `false` as
 								// processing state. Then, start each message in a worker function.
 								const ackRequest = {
@@ -212,7 +210,7 @@ exports.veraPull = (req, res) => {
 									res.status(200).send("[]");
 								}
 							})
-						})	
+						})
 					})
 					.catch(err => {
 						console.error('ERROR:', err);
@@ -222,7 +220,7 @@ exports.veraPull = (req, res) => {
 				// no message, return immediately
 				res.status(200).send("[]");
 			}
-		});
+		})
 	}
 	return;
 };
