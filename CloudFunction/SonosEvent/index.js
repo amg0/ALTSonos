@@ -40,56 +40,63 @@ function listAllTopics() {
   // [END pubsub_list_topics]
 }
 
-async function createCounter() {
-	console.log(`Creating new entity for key ${key.path.join('/')}.`);
-	const entity = {
-		key: key,
-		excludeFromIndexes: [
-			'count'
-		],
-		data: {
-			count: 0
-		}
-	};
-	await datastore.insert(entity);
+function tryDecrementCounter( relative ) {
+	console.log("tryDecrementCounter: (%d)",relative)
+	const transaction = datastore.transaction();
+	var entity = null;
+	return transaction
+		.run()
+		.then( () => transaction.get(key) )
+		.then( results => {
+			entity = results[0];
+			if (entity) {
+				console.log("tryDecrementCounter: counter value is %s",JSON.stringify(entity));
+			}
+			const newentity = {
+				key: key,
+				excludeFromIndexes: [
+					'count'
+				],
+				data: {
+					count: (entity) ? entity.count : 0
+				}
+			};
+			newentity.data.count = Math.max( 0, newentity.data.count  - relative )
+			transaction.save(newentity)
+			console.log("tryDecrementCounter: set counter value to %s",JSON.stringify(newentity.data));
+			return transaction.commit() 
+		})
+		.then(() => {
+			// The transaction completed successfully.
+			console.log('tryDecrementCounter: transaction updated properly');
+		  })
+		.catch( () => transaction.rollback() )
 }
 
-async function getCounter() {
-	try {
-		const [entity] = await datastore.get(key)
-		if (!entity) {
-			await createCounter();
-			return 0
-		}
-		console.log("got entity %s",JSON.stringify(entity));
-		return entity.count
-	}
-	catch (err) {
-		console.error(err);
-		return null
-	}
-};
+function decrementCounter( relative ) {
+	const maxTries = 5;
+	let currentAttempt = 1;
+	let delay = 100;
 
-async function setCounter(count) {
-	try {
-		const entity = {
-			key: key,
-			excludeFromIndexes: [
-				'count'
-			],
-			data: {
-				count: count
+	function tryRequest() {
+		return tryDecrementCounter( relative ).catch( err => {
+			console.log('tryRequest: transaction failed, retry count:',currentAttempt);
+			if (currentAttempt<= maxTries) {
+				return new Promise( (resolve,reject) => {
+					console.log('setting rety in %d ms',delay);
+					setTimeout( ()=>{
+						currentAttempt++;
+						delay *= 2;
+						tryRequest().then( resolve,reject );
+					}, delay );
+				});
 			}
-		};
-		await datastore.save(entity)
-		console.log('Saved counter: %d', entity.data.count);
-		return entity.data.count
-	} 
-	catch(err) {
-		console.error('ERROR:', err);
-		return null;
+			console.log('tryRequest: Max rety count reached, transaction failed');
+			return Promise.reject(err);
+		});
 	}
-};
+	return tryRequest();
+}
 
 exports.sonosEvent = (req, res) => {
 	// Creates a client
@@ -135,12 +142,9 @@ exports.sonosEvent = (req, res) => {
 			.publish(dataBuffer)
 			.then(messageId => {
 				console.log(`Message ${messageId} published.`);
-				getCounter()
-				.then(count=>{
-					setCounter( (count || 0) + 1 )
-					.then( () => {
-						res.status(200).send("ok - "+messageId);
-					})
+				decrementCounter( -1 ) // to increment
+				.then( () =>{
+					res.status(200).send("ok - "+messageId);
 				})
 			})
 			.catch(err => {

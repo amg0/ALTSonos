@@ -23,7 +23,7 @@ local https = require ("ssl.https")
 local SonosEventTimer = 2
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
-local SonosEventDecayCount = 3
+local SonosEventDecayCount = 4
 local SonosDB = {}
 local SeqId = 0 	-- for changing timer duration of pending calldelay ...
 
@@ -515,7 +515,7 @@ local function increaseTimer(current)
 end
 
 function refreshMetadata(data)
-	debug(string.format("refreshMetadata(%s)",data))
+	debug(string.format("refreshMetadata(%s) - current SeqId:#%s",data,SeqId))
 	local obj = json.decode(data)
 	local lul_device = tonumber(obj.lul_device)
 	local oldSeqId = tonumber(obj.lul_data)

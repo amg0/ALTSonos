@@ -83,6 +83,64 @@ function listenForMessages(subscriptionName, timeout) {
   }, timeout * 1000);
 }
 
+function tryDecrementCounter( relative ) {
+	console.log("tryDecrementCounter: (%d)",relative)
+	const transaction = datastore.transaction();
+	var entity = null;
+	return transaction
+		.run()
+		.then( () => transaction.get(key) )
+		.then( results => {
+			entity = results[0];
+			if (entity) {
+				console.log("tryDecrementCounter: counter value is %s",JSON.stringify(entity));
+			}
+			const newentity = {
+				key: key,
+				excludeFromIndexes: [
+					'count'
+				],
+				data: {
+					count: (entity) ? entity.count : 0
+				}
+			};
+			newentity.data.count = Math.max( 0, newentity.data.count  - relative )
+			transaction.save(newentity)
+			console.log("tryDecrementCounter: set counter value to %s",JSON.stringify(newentity.data));
+			return transaction.commit() 
+		})
+		.then(() => {
+			// The transaction completed successfully.
+			console.log('tryDecrementCounter: transaction updated properly');
+		  })
+		.catch( () => transaction.rollback() )
+}
+
+function decrementCounter( relative ) {
+	const maxTries = 5;
+	let currentAttempt = 1;
+	let delay = 100;
+
+	function tryRequest() {
+		return tryDecrementCounter( relative ).catch( err => {
+			console.log('tryRequest: transaction failed, retry count:',currentAttempt);
+			if (currentAttempt<= maxTries) {
+				return new Promise( (resolve,reject) => {
+					console.log('setting rety in %d ms',delay);
+					setTimeout( ()=>{
+						currentAttempt++;
+						delay *= 2;
+						tryRequest().then( resolve,reject );
+					}, delay );
+				});
+			}
+			console.log('tryRequest: Max rety count reached, transaction failed');
+			return Promise.reject(err);
+		});
+	}
+	return tryRequest();
+}
+
 async function createCounter() {
 	console.log(`Creating new datastore entity for key ${key.path.join('/')}.`);
 	const entity = {
@@ -104,33 +162,12 @@ async function getCounter() {
 			await createCounter();
 			return 0
 		}
-		console.log("got entity %s",JSON.stringify(entity));
+		console.log("counter value is %s",JSON.stringify(entity));
 		return entity.count
 	}
 	catch (err) {
 		console.error(err);
 		return null
-	}
-};
-
-async function setCounter(count) {
-	try {
-		const entity = {
-			key: key,
-			excludeFromIndexes: [
-				'count'
-			],
-			data: {
-				count: count
-			}
-		};
-		await datastore.save(entity)
-		console.log('Saved counter: %d', entity.data.count);
-		return entity.data.count
-	} 
-	catch(err) {
-		console.error('ERROR:', err);
-		return null;
 	}
 };
 
@@ -169,7 +206,7 @@ async function initialize(formattedName, formattedTopic) {
 	var responses = await client.createSubscription(request)
 	var subscription = responses[0];
 	console.log('Subscription created:', subscriptionname);
-	await getCounter();
+	await decrementCounter(0);	// create if required
 	return responses
 }
 
@@ -207,24 +244,18 @@ exports.veraPull = (req, res) => {
 				.then(responses => {
 					// The first element of `responses` is a PullResponse object.
 					const response = responses[0];
-					getCounter()
-					.then ( count => {
-						var newcount = 0;					
-						if (response.receivedMessages.length>0) {
-							newcount = Math.max(0, (count || 0) - response.receivedMessages.length)
-						}
-						setCounter( newcount )
-						.then( () => {
-							// Initialize `messages` with message ackId, message data and `false` as
-							// processing state. Then, start each message in a worker function.
-							acknowledgeMessages(formattedName, response)
-							.then( result => {
-								res.status(200).send(JSON.stringify(result));
-							})
-							.catch( err=>{
-								console.error(err);
-								res.status(500).send("ko");
-							})
+					var decrement = (response.receivedMessages.length>0) ? response.receivedMessages.length : count
+					decrementCounter( decrement )
+					.then ( () => {
+						// Initialize `messages` with message ackId, message data and `false` as
+						// processing state. Then, start each message in a worker function.
+						acknowledgeMessages(formattedName, response)
+						.then( result => {
+							res.status(200).send(JSON.stringify(result));
+						})
+						.catch( err=>{
+							console.error(err);
+							res.status(500).send("ko");
 						})
 					})
 				})
