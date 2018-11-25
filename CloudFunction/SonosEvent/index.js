@@ -70,7 +70,10 @@ function tryDecrementCounter( relative ) {
 			// The transaction completed successfully.
 			console.log('tryDecrementCounter: transaction updated properly');
 		  })
-		.catch( () => transaction.rollback() )
+		.catch( () => {
+			console.log('tryDecrementCounter: Rolling back transaction');
+			transaction.rollback()
+		} )
 }
 
 function decrementCounter( relative ) {
