@@ -168,7 +168,7 @@ var ALTSonos = (function(api,$) {
 			return db[ first ] // for now, just the first one, later we will do all
 		}
 		function getGroups(household) {
-			var groups = Object.keys(household.groupId)
+			var groups = (household.groupId) ? Object.keys(household.groupId) : []
 			return groups
 		}
 		function getFavorites(household) {

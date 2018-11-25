@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.7"
+local version		= "v0.8"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -303,8 +303,8 @@ local function resetRefreshMetadataLoop(lul_device)
 		warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
 		SeqId = SeqId+1
 		SonosEventTimer = SonosEventTimerMin
+		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	end
-	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 end
 
 
@@ -517,8 +517,8 @@ end
 function refreshMetadata(data)
 	debug(string.format("refreshMetadata(%s)",data))
 	local obj = json.decode(data)
-	lul_device = tonumber(obj.lul_device)
-	oldSeqId = tonumber(obj.lul_data)
+	local lul_device = tonumber(obj.lul_device)
+	local oldSeqId = tonumber(obj.lul_data)
 	if (oldSeqId < SeqId ) then
 		warning(string.format("Obsolete refreshMetadata callback, ignoring.  %d %d",oldSeqId,SeqId))
 		return false
@@ -727,7 +727,7 @@ local function subscribeMetadata(lul_device,hid)
 	end
 	
 	-- start a new engine loop
-	resetRefreshMetadataLoop(lul_device)
+	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	return (response ~= nil )
 end
 
