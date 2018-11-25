@@ -106,8 +106,9 @@ Warning this plugin requires :
 #### Registration of the Application in Sonos developper portal
 1. Create a Sonos developper account https://developer.sonos.com/
 2. Go to Integration / create a new integration
-3. Enter name , go next until you reach the screen with the Key and Secret ; copied them down
-4. Click Add a redirect URL and enter your google cloud functions http trigger url : one for SonosAuthorization, the other one for SonosEvent
+3. Enter name , go next until you reach the screen with the Key and Secret ; copied them down for later use on VERA
+4. Click Add a redirect URL and enter your google cloud functions http trigger url for SonosAuthorization
+5. in the Event Callback URL, enter the other cloud function url for SonosEvent
 
 #### Configuration of the ALT Sonos plugin in settings tab
 0. You basically download the files from github ( zip file ) , then open the zip  extract all files.  
