@@ -17,6 +17,7 @@ const topicname = 'sonos-event'
 const subscriptionname = 'vera-pull'
 const pubsub = new PubSub();
 const client = new PubSub.v1.SubscriberClient({ });
+const version = "1.0.0"
 
 // Instantiates a client
 const Datastore = require('@google-cloud/datastore');
@@ -229,6 +230,9 @@ exports.veraPull = (req, res) => {
 			console.error('ERROR:', err);
 			res.status(500).send("ko, failed to create subscription " + subscriptionname);
 		});
+	} else if (req.query.version!=undefined) {
+		res.set('Access-Control-Allow-Origin', '*');
+		res.status(200).send(JSON.stringify(version));
 	} else {
 		// read a message
 		const maxMessages = 20;

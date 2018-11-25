@@ -55,8 +55,8 @@ var ALTSonos = (function(api,$) {
 			{ label:'ALTSonosKey', id:'ALTSonosKey', service:ALTSonos.SERVICE , required:true},
 			{ label:'ALTSonosSecret', id:'ALTSonosSecret', service:ALTSonos.SERVICE , required:true},
 			{ label:'CloudFunctionAuthUrl', id:'CloudFunctionAuthUrl', service:ALTSonos.SERVICE , required:true},
-			{ label:'CloudFunctionEventUrl', id:'CloudFunctionEventUrl', service:ALTSonos.SERVICE , required:true},
-			{ label:'CloudFunctionVeraPullUrl', id:'CloudFunctionVeraPullUrl', service:ALTSonos.SERVICE , required:true},
+			{ label:'CloudFunctionEventUrl', id:'CloudFunctionEventUrl', service:ALTSonos.SERVICE , required:true , version:true},
+			{ label:'CloudFunctionVeraPullUrl', id:'CloudFunctionVeraPullUrl', service:ALTSonos.SERVICE , required:true , version:true},
 			{ label:'VeraOAuthCBUrl', id:'VeraOAuthCBUrl', service:ALTSonos.SERVICE, readonly:true },
 			{ label:'AccessToken', id:'AccessToken', service:ALTSonos.SERVICE },
 			{ label:'RefreshToken', id:'RefreshToken', service:ALTSonos.SERVICE },
@@ -73,7 +73,7 @@ var ALTSonos = (function(api,$) {
 				flags.push("readonly")
 			groups += ALTSonos.format(`
 				<div class="form-group col-6 col-xs-6">
-					<label for="altsonos-{1}">{0}</label>
+					<label id="altsonos-label-{1}" for="altsonos-{1}">{0}</label>
 					<input type="text" class="form-control" id="altsonos-{1}" placeholder="{0}" {2}>
 				</div>
 			`,config.label,config.id,flags.join(","))
@@ -92,9 +92,23 @@ var ALTSonos = (function(api,$) {
 
 		// api.setCpanelContent(html);
 		api.setCpanelContent(html);
+
 		jQuery.each(configs, function(idx,config) {
 			var val = get_device_state(deviceID,  config.service, config.id,1);
 			jQuery("#altsonos-"+config.id).val( val );
+			if (config.version==true) {
+				jQuery.ajax({
+					url:val+"?version",
+					crossDomain:true,
+					success:function(json){
+						// do stuff with json (in this case an array)
+						jQuery("#altsonos-label-"+config.id).append(' <span class="badge badge-secondary">'+JSON.parse(json)+'</span>')
+					},
+					error:function(){
+						alert("Error getting version information from CloudFunctions");
+					}      
+			   });
+			}
 		})
 		
 		var online = parseInt(get_device_state(deviceID,  ALTSonos.SERVICE, "IconCode",1));

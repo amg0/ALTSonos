@@ -11,6 +11,7 @@
 // Imports the Google Cloud client library
 const PubSub = require(`@google-cloud/pubsub`);
 const topicname = 'sonos-event'
+const version = "1.0.0"
 
 // Instantiates a client
 const Datastore = require('@google-cloud/datastore');
@@ -98,6 +99,9 @@ exports.sonosEvent = (req, res) => {
 				console.error('ERROR:', err);
 				res.status(500).send("ko - failed to create topic "+topicname);
 			});		
+	} else if (req.query.version!=undefined) {
+		res.set('Access-Control-Allow-Origin', '*');
+		res.status(200).send(JSON.stringify(version));
 	} else {
 		if (req.headers['x-sonos-event-signature'] == undefined) {
 			console.log( "Event missing signature, rejected" )
