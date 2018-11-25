@@ -262,13 +262,14 @@ var ALTSonos = (function(api,$) {
 			// set_panel_html( "<div id='altsonos-main'>"+getHtml(db)+"</div>" );
 			api.setCpanelContent("<div id='altsonos-main'>"+getHtml(db)+"</div>");
 			
-			function updateVolume(idx,group) {
-				// var household = getHousehold(db)
-				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
-				var result = jQuery.get(url,function(data) {
-					var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
-					jQuery("#altsonos-voltxt-"+ idx ).text(vol)
-				})
+			function updateVolume(idx,group,delta) {
+				// var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
+				// var result = jQuery.get(url,function(data) {
+					// var vol = data["u:GetVolumeResponse"].LastVolume; //{ "u:GetVolumeResponse": { "Volume": "8" } }
+					// jQuery("#altsonos-voltxt-"+ idx ).text(vol)
+				// })
+				var val = parseInt( jQuery("#altsonos-voltxt-"+ idx ).text() )
+				jQuery("#altsonos-voltxt-"+ idx ).text(val + delta)
 			};
 			
 			function refreshHtml() {
@@ -319,7 +320,7 @@ var ALTSonos = (function(api,$) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx], volumeDelta:VOLDELTA})
 				jQuery.get(url).done( function() {
 					groupkey = groups[gidx]
-					updateVolume(gidx,household.groupId[groupkey]);
+					updateVolume(gidx,household.groupId[groupkey],VOLDELTA);
 				})
 			}
 			function _onMinus(e) {
@@ -327,7 +328,7 @@ var ALTSonos = (function(api,$) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx], volumeDelta:-VOLDELTA})
 				jQuery.get(url).done( function() {
 					groupkey = groups[gidx]
-					updateVolume(gidx,household.groupId[groupkey]);
+					updateVolume(gidx,household.groupId[groupkey],-VOLDELTA);
 				})
 			}
 			function _onPrev(e) {
@@ -348,6 +349,10 @@ var ALTSonos = (function(api,$) {
 				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID:gid,favID:favid})
 				jQuery.get(url)
 			}
+			function _onSeeGroup(e) {
+				var gid = $(this).data("gid");
+				alert(ALTSonos.format("GroupID = {0}",gid));
+			}
 			jQuery("#altsonos-main").off('click')
 				.on('click',".altsonos-btn-plus",_onPlus)
 				.on('click',".altsonos-btn-minus",_onMinus)
@@ -356,6 +361,8 @@ var ALTSonos = (function(api,$) {
 				.on('click',".altsonos-btn-play",_onPlay)
 				.on('click',".altsonos-btn-next",_onNext)
 				.on('click',".altsonos-btn-fav",_onFav)	
+				.on('click',".altsonos-btn-see",_onSeeGroup)	
+				
 		});						
 	};
 	
@@ -572,7 +579,17 @@ function ALTSonos_Players (deviceID) {
 		
 function ALTSonos_Donate(deviceID) {
 	var htmlDonate='<p>Ce plugin est gratuit mais vous pouvez aider l\'auteur par une donation modique qui sera tres appréciée</p><p>This plugin is free but please consider supporting it by a very appreciated donation to the author.</p>';
-	htmlDonate+='<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank"><input type="hidden" name="cmd" value="_donations"><input type="hidden" name="business" value="alexis.mermet@free.fr"><input type="hidden" name="lc" value="FR"><input type="hidden" name="item_name" value="Alexis Mermet"><input type="hidden" name="item_number" value="ALTSonos"><input type="hidden" name="no_note" value="0"><input type="hidden" name="currency_code" value="EUR"><input type="hidden" name="bn" value="PP-DonationsBF:btn_donateCC_LG.gif:NonHostedGuest"><input type="image" src="https://www.paypalobjects.com/en_US/FR/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!"><img alt="" border="0" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1"></form>';
+
+htmlDonate += `<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+<input type="hidden" name="cmd" value="_donations" />
+<input type="hidden" name="business" value="alexis.mermet@free.fr">
+<input type="hidden" name="item_name" value="Alexis Mermet">
+<input type="hidden" name="item_number" value="ALTSonos">
+<input type="hidden" name="currency_code" value="EUR" />
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+</form>`
+	// htmlDonate+='<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank"><input type="hidden" name="cmd" value="_donations"><input type="hidden" name="business" value="alexis.mermet@free.fr"><input type="hidden" name="lc" value="FR"><input type="hidden" name="item_name" value="Alexis Mermet"><input type="hidden" name="item_number" value="ALTSonos"><input type="hidden" name="no_note" value="0"><input type="hidden" name="currency_code" value="EUR"><input type="hidden" name="bn" value="PP-DonationsBF:btn_donateCC_LG.gif:NonHostedGuest"><input type="image" src="https://www.paypalobjects.com/en_US/FR/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!"><img alt="" border="0" src="https://www.paypalobjects.com/fr_FR/i/scr/pixel.gif" width="1" height="1"></form>';
 	var html = '<div>'+htmlDonate+'</div>';
 	set_panel_html(html);
 }

@@ -17,29 +17,6 @@ const Datastore = require('@google-cloud/datastore');
 const datastore = Datastore();
 const key = datastore.key(["Counter", "PubSub"]);
 
-function listAllTopics() {
-  // [START pubsub_list_topics]
-  // Imports the Google Cloud client library
-  // const PubSub = require(`@google-cloud/pubsub`);
-
-  // Creates a client
-  const pubsub = new PubSub();
-
-  // Lists all topics in the current project
-  pubsub
-    .getTopics()
-    .then(results => {
-      const topics = results[0];
-
-      console.log('Topics:');
-      topics.forEach(topic => console.log(topic.name));
-    })
-    .catch(err => {
-      console.error('ERROR:', err);
-    });
-  // [END pubsub_list_topics]
-}
-
 function tryDecrementCounter( relative ) {
 	console.log("tryDecrementCounter: (%d)",relative)
 	const transaction = datastore.transaction();
