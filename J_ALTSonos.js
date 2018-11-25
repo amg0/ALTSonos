@@ -11,7 +11,8 @@
 //-------------------------------------------------------------
 // ALTSonos	 Plugin javascript Tabs
 //-------------------------------------------------------------
-var VOLDELTA = 5
+const VOLDELTA = 5
+const CFVERSION = "1.0.0"
 var ALTSonos_myapi = window.api || null
 var ALTSonos = (function(api,$) {
 	
@@ -102,7 +103,9 @@ var ALTSonos = (function(api,$) {
 					crossDomain:true,
 					success:function(json){
 						// do stuff with json (in this case an array)
-						jQuery("#altsonos-label-"+config.id).append(' <span class="badge badge-secondary">'+JSON.parse(json)+'</span>')
+						var cfversion = JSON.parse(json)
+						var cls = (CFVERSION==cfversion) ? "badge-success" : "badge-danger"
+						jQuery("#altsonos-label-"+config.id).append(' <span class="badge '+cls+'">'+JSON.parse(json)+'</span>')
 					},
 					error:function(){
 						alert("Error getting version information from CloudFunctions");
