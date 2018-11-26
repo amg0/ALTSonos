@@ -12,7 +12,7 @@
 // ALTSonos	 Plugin javascript Tabs
 //-------------------------------------------------------------
 const VOLDELTA = 5
-const CFVERSION = "1.0.0"
+const CFVERSION = "1.0.1"
 var ALTSonos_myapi = window.api || null
 var ALTSonos = (function(api,$) {
 	
@@ -84,10 +84,11 @@ var ALTSonos = (function(api,$) {
 			<form class="row" id="altsonos-settings-form">
 				{0}	
 				<div class="form-group col-12"> 
-				<button id="altsonos-submit" type="submit" class="btn btn-default">Submit</button>
+					<button id="altsonos-submit" type="submit" class="btn btn-default">Submit</button>
+					<button id="altsonos-github" type="button" class="btn btn-default">Open Github</button>
+					<button id="altsonos-login" type="button" class="btn btn-default">Login to Sonos</button>
 				</div>
 			</form>
-			<button id="altsonos-login" type="button" class="btn btn-default">Login to Sonos</button>
 		  </div>
 		`, groups )
 
@@ -103,9 +104,14 @@ var ALTSonos = (function(api,$) {
 					crossDomain:true,
 					success:function(json){
 						// do stuff with json (in this case an array)
-						var cfversion = JSON.parse(json)
-						var cls = (CFVERSION==cfversion) ? "badge-success" : "badge-danger"
-						jQuery("#altsonos-label-"+config.id).append(' <span class="badge '+cls+'">'+JSON.parse(json)+'</span>')
+						var cfversion = JSON.parse(json);
+						var cls = (CFVERSION==cfversion) ? "badge-success" : "badge-danger";
+						var tpl = '<span class="badge {0}">{1}</span>';
+						var txt = ALTSonos.format(tpl,cls,JSON.parse(json));
+						if (CFVERSION!=cfversion) {
+							txt += (", needs:"+ALTSonos.format(tpl,"badge-success",CFVERSION));
+						}
+						jQuery("#altsonos-label-"+config.id).append(" "+txt);
 					},
 					error:function(){
 						alert("Error getting version information from CloudFunctions");
@@ -148,6 +154,7 @@ var ALTSonos = (function(api,$) {
 		}
 		jQuery( "#altsonos-settings-form" ).on("submit", _onSave)
 		jQuery( "#altsonos-login" ).on("click", _onLoginRequest)
+		jQuery( "#altsonos-github" ).on("click", function() { window.open('https://github.com/amg0/ALTSonos','_blank') } )
 	};
 	
 	function ALTSonos_Households(deviceID) {
@@ -603,6 +610,7 @@ htmlDonate += `<form action="https://www.paypal.com/cgi-bin/webscr" method="post
 <input type="hidden" name="item_name" value="Alexis Mermet">
 <input type="hidden" name="item_number" value="ALTSonos">
 <input type="hidden" name="currency_code" value="EUR" />
+<input type="hidden" name="lc" value="en_US" />
 <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
 <img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
 </form>`

@@ -17,7 +17,7 @@ const topicname = 'sonos-event'
 const subscriptionname = 'vera-pull'
 const pubsub = new PubSub();
 const client = new PubSub.v1.SubscriberClient({ });
-const version = "1.0.0"
+const version = "1.0.1"
 
 // Instantiates a client
 const Datastore = require('@google-cloud/datastore');
@@ -251,7 +251,7 @@ exports.veraPull = (req, res) => {
 				.then(responses => {
 					// The first element of `responses` is a PullResponse object.
 					const response = responses[0];
-					var decrement = (response.receivedMessages.length>0) ? response.receivedMessages.length : count
+					var decrement = (response.receivedMessages.length>0) ? response.receivedMessages.length : 1
 					decrementCounter( decrement )
 					.then ( () => {
 						// Initialize `messages` with message ackId, message data and `false` as

@@ -11,7 +11,7 @@
 // Imports the Google Cloud client library
 const PubSub = require(`@google-cloud/pubsub`);
 const topicname = 'sonos-event'
-const version = "1.0.0"
+const version = "1.0.1"
 
 // Instantiates a client
 const Datastore = require('@google-cloud/datastore');

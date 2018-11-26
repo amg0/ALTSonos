@@ -24,6 +24,7 @@ local SonosEventTimer = 2
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
 local SonosEventDecayCount = 4
+local SonosPlayStreamStopTimeSec = 6
 local SonosDB = {}
 local SeqId = 0 	-- for changing timer duration of pending calldelay ...
 
@@ -287,7 +288,7 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 						SonosDB[householdid][target_type][target_value][sonos_type] = body
 						SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
 					else
-						warning(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
+						debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
 					end
 				end
 			end
@@ -670,7 +671,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl )
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
 		-- groupPlayPause(lul_device,"play",gid)
-		luup.call_delay("stopStreamUrl", 5, json.encode({lul_device=lul_device, gid=gid}))
+		luup.call_delay("stopStreamUrl", SonosPlayStreamStopTimeSec, json.encode({lul_device=lul_device, gid=gid}))
 		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
