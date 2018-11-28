@@ -24,7 +24,7 @@ local SonosEventTimer = 2
 local SonosEventTimerMin = SonosEventTimer
 local SonosEventTimerMax = 3600
 local SonosEventDecayCount = 4
-local SonosPlayStreamStopTimeSec = 6
+local SonosPlayStreamStopTimeSec = 7
 local SonosDB = {}
 local SeqId = 0 	-- for changing timer duration of pending calldelay ...
 
