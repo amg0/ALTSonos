@@ -47,6 +47,12 @@
             <defaultValue></defaultValue>
             <shortCode>urlclip</shortCode>
         </stateVariable>	
+        <stateVariable sendEvents="no">
+            <name>duration</name>
+            <dataType>ui4</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>duration</shortCode>
+        </stateVariable>	
 	</serviceStateTable>
     <actionList>
         <action>
@@ -159,6 +165,11 @@
 				<name>urlClip</name>
 				<direction>in</direction>
 				<relatedStateVariable>urlclip</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>Duration</name>
+				<direction>in</direction>
+				<relatedStateVariable>duration</relatedStateVariable>
 			</argument>
             </argumentList>
 		</action>	

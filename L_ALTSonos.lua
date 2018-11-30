@@ -654,14 +654,16 @@ end
 function stopStreamUrl(data)
 	debug(string.format("stopStreamUrl(%s)",data))
 	local obj = json.decode(data)
-	local obj = json.decode(data)
 	lul_device = tonumber(obj.lul_device)
 	gid = obj.gid
 	groupPlayPause(lul_device,"pause",gid)
 end	
 	
-local function loadStreamUrlGid(lul_device, gid, streamUrl )
-	debug(string.format("loadStreamUrlGid(%s,%s,%s)",lul_device, gid , streamUrl ))
+local function loadStreamUrlGid(lul_device, gid, streamUrl, duration )
+	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' ))
+	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
+	duration = math.max( SonosPlayStreamStopTimeSec , duration )
+	debug(string.format("corrected duration:%s",duration))
 	local response,msg = createSession(lul_device, gid )
 	if (response ~= nil) and (response.sessionId ~= nil) then
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
@@ -671,7 +673,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl )
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
 		-- groupPlayPause(lul_device,"play",gid)
-		luup.call_delay("stopStreamUrl", SonosPlayStreamStopTimeSec, json.encode({lul_device=lul_device, gid=gid}))
+		luup.call_delay("stopStreamUrl", duration, json.encode({lul_device=lul_device, gid=gid}))
 		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
@@ -679,17 +681,17 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl )
 	return nil,"could not create a sonos session"
 end
 
-local function loadStreamUrl(lul_device, gid, streamUrl )
-	debug(string.format("loadStreamUrl(%s,%s,%s)",lul_device, gid , streamUrl ))
+local function loadStreamUrl(lul_device, gid, streamUrl , duration )
+	debug(string.format("loadStreamUrl(%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "" ))
 	if (gid=="ALL") then
 		for idx,gid in pairs(enumerateGroups()) do
-			loadStreamUrlGid(lul_device, gid, streamUrl )
+			loadStreamUrlGid(lul_device, gid, streamUrl, duration )
 		end
 		return
 	else
 		-- TODO split groups by CSV and iterate for specified groups
 	end
-	return loadStreamUrlGid(lul_device, gid, streamUrl )
+	return loadStreamUrlGid(lul_device, gid, streamUrl ,duration )
 end
 
 function subscribeDeferred(data)
