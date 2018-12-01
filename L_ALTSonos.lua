@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.9"
+local version		= "v0.9b"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -270,6 +270,13 @@ local function getDBValue(lul_device,householdid,target_type,target_value,sonos_
 	return null
 end
 
+local function clearDBValue(lul_device,seq_id,householdid,target_type,target_value)
+	log(string.format("clearDBValue(%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or ''))
+	if (target_type ~=nil) and (target_value ~= nil) then
+		SonosDB[householdid][target_type][target_value] = nil
+	end
+end
+
 local function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
 	log(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	seq_id = tonumber(seq_id or 0)
@@ -280,16 +287,29 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 			SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 			if (sonos_type ~=nil) then
 				debug(string.format("type:%s body is %s",sonos_type,json.encode(body)))
-				if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
-					SonosDB[householdid][target_type][target_value][sonos_type] = body
-					SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+				
+				if (sonos_type=='groupCoordinatorChanged') then
+					if (body.groupStatus=="GROUP_STATUS_GONE") then
+						-- group disappeared, kill it
+						clearDBValue(lul_device,nil,householdid,target_type,target_value)
+					elseif (body.groupStatus=="GROUP_STATUS_UPDATED") then
+						-- udpate name which has changed
+						SonosDB[householdid][target_type][target_value]['core']['name'] = body.groupName
+						getGroups(lul_device, householdid )
+					end
 				else
-					if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] <= seq_id ) then
+					-- all other use cases
+					if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
 						SonosDB[householdid][target_type][target_value][sonos_type] = body
 						SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
 					else
-						debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
-					end
+						if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] <= seq_id ) then
+							SonosDB[householdid][target_type][target_value][sonos_type] = body
+							SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+						else
+							debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
+						end
+					end				
 				end
 			end
 		end
@@ -415,7 +435,8 @@ local function onAuthorizationCallback( lul_device, AuthCode)
 	return response,msg
 end
 
-local function getGroups(lul_device, hid )
+-- not local, setDBValue calls it
+function getGroups(lul_device, hid )
 	debug(string.format("getGroups(%s,%s)",lul_device,hid))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/groups",hid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
@@ -679,6 +700,23 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration )
 	end
 	warning("could not join or create a sonos session")
 	return nil,"could not create a sonos session"
+end
+
+local function setGroupMembers(lul_device, groupID, playerIDs)
+	playerIDs = playerIDs or ''
+	debug(string.format("setGroupMembers(%s,%s,'%s')",lul_device, groupID , playerIDs))
+	local players = Split(playerIDs, ',', 0)
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groups/setGroupMembers",groupID)
+	local body = json.encode({
+		["playerIds"] = players
+	})	
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+
+	--"{\"group\":{\"id\":\"RINCON_5CAAFD05CA4E01400:2985\",\"name\":\"Séjour + 1\",\"coordinatorId\":\"RINCON_5CAAFD05CA4E01400\",\"playerIds\":[\"RINCON_5CAAFD05CA4E01400\",\"RINCON_5CAAFD48412A01400\"]}}"
+
+
+	resetRefreshMetadataLoop(lul_device)
+	return response,msg	
 end
 
 local function loadStreamUrl(lul_device, gid, streamUrl , duration )

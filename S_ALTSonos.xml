@@ -36,10 +36,10 @@
             <shortCode>lastVolume</shortCode>
         </stateVariable>	
         <stateVariable sendEvents="no">
-            <name>playerID</name>
+            <name>playerIDs</name>
             <dataType>string</dataType>
             <defaultValue></defaultValue>
-            <shortCode>playerid</shortCode>
+            <shortCode>playerids</shortCode>
         </stateVariable>	
         <stateVariable sendEvents="no">
             <name>urlClip</name>
@@ -173,5 +173,20 @@
 			</argument>
             </argumentList>
 		</action>	
+		<action>
+			<name>SetGroupMembers</name>
+            <argumentList>
+			<argument>
+				<name>groupID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>playerIDs</name>
+				<direction>in</direction>
+				<relatedStateVariable>playerids</relatedStateVariable>
+			</argument>
+            </argumentList>
+		</action>
 	</actionList>
 </scpd>

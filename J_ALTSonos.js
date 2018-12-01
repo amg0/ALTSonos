@@ -186,7 +186,27 @@ var ALTSonos = (function(api,$) {
 				  {0}
 				  </div>
 				</div>`;
-
+		//0:id 1:title 2:body
+		var dialogModalTemplate = `
+		<div class="modal fade" tabindex="-1" role="dialog" id="{0}">
+		<div class="modal-dialog" role="document">
+		  <div class="modal-content">
+			<div class="modal-header">
+			  <h5 class="modal-title">{1}</h5>
+			  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+			  </button>
+			</div>
+			<div class="modal-body">
+			  <p>{2}</p>
+			</div>
+			<div class="modal-footer">
+			  <button type="button" class="btn btn-primary">Save changes</button>
+			  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		  </div>
+		</div>
+	  </div>`
 		function getStyles() {
 			return '<style type="text/css">.altsonos-btn-fav-img { width:50px; height:50px; }</style>' //altsonos-btn-fav-img <style >
 		}
@@ -388,8 +408,46 @@ var ALTSonos = (function(api,$) {
 				jQuery.get(url)
 			}
 			function _onSeeGroup(e) {
-				var gid = $(this).data("gid");
-				alert(ALTSonos.format("GroupID = {0}",gid));
+				var gid = jQuery(this).data("gid");
+				var url = buildHandlerUrl(deviceID,"GetDBInfo")
+				var html = ``
+				var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
+
+				jQuery.get(url, function(db) {
+					if ((db==null) || (db=="No handler"))
+						return
+					household = getHousehold(db)
+					groups = getGroups(household);
+					var group = household['groupId'][gid]['core']
+					//group.playerIds
+					var model = jQuery.map( players, function( player, idx ){
+						var cls = (group.playerIds.includes(player.id)) ? 'checked' : '';
+						return {
+							check: '<input id="'+player.id+'" type="checkbox" name="member" value="member" '+cls+'>In<br>',
+							id: player.id,
+							name: player.name
+						}
+					})
+					var body = array2Table(model,'id',[],'Group Definition','altsonos-grp-tbl-cls','altsonos-grp-tbl',false)
+					var html = ALTSonos.format(dialogModalTemplate,'altsonos-group-dlg','Group',body);
+					jQuery("#altsonos-main").prepend(html);
+					jQuery('#altsonos-group-dlg').on('hidden.bs.modal', function (e) {
+						jQuery('#altsonos-group-dlg').remove()
+					})
+					jQuery("#altsonos-group-dlg").on("click",".btn-primary",function(){
+						// save changes
+						var selected = jQuery.map( jQuery("#altsonos-group-dlg input:checked"), function(elem){
+							return $(elem).prop('id')
+						})
+
+						var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetGroupMembers",{groupID:gid, playerIDs: selected.join(",") })
+						jQuery.get(url).done( function() {
+							alert('done')
+						})
+						jQuery("#altsonos-group-dlg").modal('hide');	// will trigger hidden.bs.modal
+					});
+					jQuery("#altsonos-group-dlg").modal();
+				})
 			}
 			jQuery("#altsonos-main").off('click')
 				.on('click',".altsonos-btn-plus",_onPlus)
