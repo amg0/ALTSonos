@@ -20,6 +20,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.6 : Async notification from Sonos cloud working ( metadata, track, image etc ... ) , no UI yet
 - 0.7 : UI for async notifications , set/change volume , display track album art, play Audio Clip UPNP etc...
 - 0.8 : Cloud Function optimization to remove load from vera backend, versioning and display of versions
+- 0.9 : Display Favorite's icons , take into account Duration parameter for playing audio clips
 
 ### UI
 tbd
@@ -51,7 +52,7 @@ tbd
 - Prev : move to the previous item in the selection
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
-- AudioClip : trigger the play of a clip (urlClip) on a group (groupID or "ALL" for all) then stop
+- AudioClip : trigger the play of a clip (*urlClip*) on a group (*groupID* or "ALL" for all) for a Duration (*Duration* in sec ) then stop
 
 
 ### Handler
@@ -78,7 +79,7 @@ Warning this plugin requires :
 1. Create a google account if required
 2. go to google cloud console https://console.cloud.google.com
 3. create a project
-4. go to DataStore page and enable the legacy datastore in the project
+4. go to DataStore page and enable the **Classic** datastore in the project.
 4. open the google Cloud Shell ( buttons on the top menu bar )
 5. Choose your region (like europe-west1) as you best see fit. cf https://cloud.google.com/compute/docs/regions-zones/ and type:
 
