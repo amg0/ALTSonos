@@ -22,6 +22,8 @@ in any cases, not authorized for reseller or commercial usage
 - 0.8 : Cloud Function optimization to remove load from vera backend, versioning and display of versions
 - 0.9 : Display Favorite's icons , take into account Duration parameter for playing audio clips
 
+:boom: Warning : you have to update manually the gcloud part as the plugin evovle. a red badge will be shown in the settings page if an update is needed
+
 ### UI
 ![Group Play Control User interface](https://raw.githubusercontent.com/amg0/ALTSonos/master/Doc/UI.PNG)
 
