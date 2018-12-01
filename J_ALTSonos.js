@@ -187,6 +187,10 @@ var ALTSonos = (function(api,$) {
 				  </div>
 				</div>`;
 
+		function getStyles() {
+			return '<style type="text/css">.altsonos-btn-fav-img { width:50px; height:50px; }</style>' //altsonos-btn-fav-img <style >
+		}
+		
 		function getHousehold(db) {
 			var first = Object.keys(db)[0]
 			return db[ first ] // for now, just the first one, later we will do all
@@ -237,6 +241,19 @@ var ALTSonos = (function(api,$) {
 			var volhtml = (group.groupVolume) ? ALTSonos.format(btnVol,idx,group.groupVolume.volume) : '?'
 			return "<span id='altsonos-vol-"+idx+"'>"+volhtml+"</span>"
 		}
+		function getFavoritesMenuitems(favorites) {
+			return jQuery.map(favorites, function (obj, id) {
+				fav = obj.favorite;
+				var name =  ''
+				if (fav.imageUrl && fav.imageUrl.length>0){
+					name += '<img class="altsonos-btn-fav-img" src="'+fav.imageUrl+'"></img> '
+				} 
+				name += '<span>' + (fav.service.name || '') +":"+fav.name + '</span>'
+				var html = '<button data-favid="' + fav.id + '" class="dropdown-item altsonos-btn-fav" type="button">' + name + '</button>';
+				return html 
+			});
+		}
+
 		fixUI7();
 		var url = buildHandlerUrl(deviceID,"GetDBInfo")
 		jQuery.get(url, function(data) {
@@ -250,10 +267,7 @@ var ALTSonos = (function(api,$) {
 			function getHtml(db) {
 				var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
 				
-				var favmap = jQuery.map( favorites, function(obj,id) {
-					fav = obj.favorite
-					return '<button data-favid="'+fav.id+'"class="dropdown-item altsonos-btn-fav" type="button">'+fav.name+'</button>'
-				})
+				var favmap = getFavoritesMenuitems(favorites)
 				
 				var playerMap = {}
 				jQuery.each( players, function(idx,player) {
@@ -275,7 +289,7 @@ var ALTSonos = (function(api,$) {
 						track: getName(idx,group), 
 						img: getImage(idx,group),
 						volume: getVolume(idx,group),
-						favorites: ALTSonos.format(htmlFavoritesTemplate,favmap.join(""),group.core.id),
+						favorites: ALTSonos.format(htmlFavoritesTemplate, favmap.join(""), group.core.id),
 						cmd: getCmd(idx,group) // ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
 					})
 				})
@@ -284,7 +298,7 @@ var ALTSonos = (function(api,$) {
 			};
 			
 			// set_panel_html( "<div id='altsonos-main'>"+getHtml(db)+"</div>" );
-			api.setCpanelContent("<div id='altsonos-main'>"+getHtml(db)+"</div>");
+			api.setCpanelContent(getStyles()+"<div id='altsonos-main'>"+getHtml(db)+"</div>");
 			
 			function updateVolume(idx,group,delta) {
 				// var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"GetVolume",{groupID:group.core.id})
