@@ -23,7 +23,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.9 : Display Favorite's icons , take into account Duration parameter for playing audio clips
 
 ### UI
-tbd
+![Group Play Control User interface](https://raw.githubusercontent.com/amg0/ALTSonos/master/Doc/UI.PNG)
 
 ### Variables
 - Debug : 1 for mode debug enabled
