@@ -297,21 +297,25 @@ var ALTSonos = (function(api,$) {
 
 				jQuery.each( groups , function(idx,groupkey) {
 					var group = household.groupId[groupkey]
-					var players = jQuery.map(group.core.playerIds || [], function(elem,idx) {
-						return playerMap[elem].name
-					})
+					if ( (group.groupCoordinatorChanged == undefined ) || (group.groupCoordinatorChanged.groupStatus != "GROUP_STATUS_GONE")) {
+							var players = (group.core) 
+							? jQuery.map(group.core.playerIds || [], function(elem,idx) {
+								return playerMap[elem].name
+							})
+							: []
 
-					model.push({
-						name: group.core.name,
-						// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
-						members: players.join(","),
-						id: ALTSonos.format("<button data-gid='{0}' data-gidx='{1}'  class='btn btn-sm btn-outline-secondary altsonos-btn-see'><span title='{0}'>See</span></button>",group.core.id,idx),
-						track: getName(idx,group), 
-						img: getImage(idx,group),
-						volume: getVolume(idx,group),
-						favorites: ALTSonos.format(htmlFavoritesTemplate, favmap.join(""), group.core.id),
-						cmd: getCmd(idx,group) // ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
-					})
+						model.push({
+							name: group.core.name,
+							// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
+							members: players.join(","),
+							id: ALTSonos.format("<button data-gid='{0}' data-gidx='{1}'  class='btn btn-sm btn-outline-secondary altsonos-btn-see'><span title='{0}'>See</span></button>",group.core.id,idx),
+							track: getName(idx,group), 
+							img: getImage(idx,group),
+							volume: getVolume(idx,group),
+							favorites: ALTSonos.format(htmlFavoritesTemplate, favmap.join(""), group.core.id),
+							cmd: getCmd(idx,group) // ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
+						})
+					}
 				})
 				var html = array2Table(model,'id',[],'My Groups','altsonos-tbl','altsonos-groupstbl',false)
 				return html;
@@ -424,8 +428,8 @@ var ALTSonos = (function(api,$) {
 						var cls = (group.playerIds.includes(player.id)) ? 'checked' : '';
 						return {
 							check: '<input id="'+player.id+'" type="checkbox" name="member" value="member" '+cls+'>In<br>',
-							id: player.id,
-							name: player.name
+							name: player.name,
+							id: player.id
 						}
 					})
 					var body = array2Table(model,'id',[],'Group Definition','altsonos-grp-tbl-cls','altsonos-grp-tbl',false)

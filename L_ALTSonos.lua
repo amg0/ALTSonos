@@ -255,8 +255,17 @@ end
 local function getDBValue(lul_device,householdid,target_type,target_value,sonos_type )
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
+		if (SonosDB[householdid]==nil) then
+			SonosDB[householdid]={}
+		end
 		if (target_value~=nil) then
+			if (SonosDB[householdid][target_type]==nil) then
+				SonosDB[householdid][target_type]={}
+			end
 			if (sonos_type~=nil) then
+				if (SonosDB[householdid][target_type][target_value]==nil) then
+					SonosDB[householdid][target_type][target_value]={}
+				end
 				return SonosDB[householdid][target_type][target_value][sonos_type] 
 			else
 				return SonosDB[householdid][target_type][target_value] 
@@ -270,14 +279,74 @@ local function getDBValue(lul_device,householdid,target_type,target_value,sonos_
 	return null
 end
 
-local function clearDBValue(lul_device,seq_id,householdid,target_type,target_value)
-	log(string.format("clearDBValue(%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or ''))
+function clearDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type)
+	debug(string.format("clearDBValue(%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or ''))
 	if (target_type ~=nil) and (target_value ~= nil) then
 		SonosDB[householdid][target_type][target_value] = nil
+		return true
 	end
+	return false
 end
 
-local function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
+function onDefaultNotificaton(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+	debug(string.format("onDefaultNotificaton(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	-- all other use cases
+	if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
+		SonosDB[householdid][target_type][target_value][sonos_type] = body
+		SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+		return true
+	else
+		if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] <= seq_id ) then
+			SonosDB[householdid][target_type][target_value][sonos_type] = body
+			SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+			return true
+		else
+			debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
+		end
+	end
+	return false
+end
+
+function onGroupCoordinatorChanged(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+	debug(string.format("onGroupCoordinatorChanged(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	if (body.groupStatus=="GROUP_STATUS_GONE") then
+		clearDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type)
+		return false
+	end
+	return false --  onDefaultNotificaton(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+end
+
+function onGroupsNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+	debug(string.format("onGroupsNotification(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	luup.variable_set(ALTSonos_SERVICE, "Players", json.encode(body.players), lul_device)
+	local updatedGroups = {} 
+	for i,grp in pairs(body.groups) do
+		-- if it is brand new group, we need to properly register for notifications
+		local old = getDBValue(lul_device,householdid,'groupId',grp.id)
+		setDBValue(lul_device,seq_id,householdid,'groupId',grp.id,'core', grp )
+		if (old==nil) then
+			--  new group
+			debug(string.format("new group advertised %s, registering for notifications",grp.id))
+			subscribeGroup(lul_device, SonosDB[householdid].groupId[ grp.id ])
+		end
+		updatedGroups[ grp.id ] = true
+	end
+	debug(string.format("updated groups = %s ",json.encode(updatedGroups)))
+	-- now remove all the groups from the DB which were not reported back
+	local household = SonosDB[householdid]
+	for gid,group in pairs(household.groupId) do
+		-- if gif was not updated, then kill it
+		if (updatedGroups[gid]==nil) then
+			debug(string.format("group %s was not updated, delete it",gid))
+			unsubscribeGroup(lul_device, group)
+			SonosDB[householdid].groupId[gid] = nil
+		end
+	end
+	debug(string.format("END OF onGroupsNotification(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	return true
+end
+
+function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
 	log(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	seq_id = tonumber(seq_id or 0)
 	SonosDB[householdid] = SonosDB[householdid] or {}
@@ -289,33 +358,27 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 				debug(string.format("type:%s body is %s",sonos_type,json.encode(body)))
 				
 				if (sonos_type=='groupCoordinatorChanged') then
-					if (body.groupStatus=="GROUP_STATUS_GONE") then
-						-- group disappeared, kill it
-						clearDBValue(lul_device,nil,householdid,target_type,target_value)
-					elseif (body.groupStatus=="GROUP_STATUS_UPDATED") then
-						-- udpate name which has changed
-						SonosDB[householdid][target_type][target_value]['core']['name'] = body.groupName
-						-- getGroups(lul_device, householdid )
-					end
-				else
-					-- all other use cases
-					if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
-						SonosDB[householdid][target_type][target_value][sonos_type] = body
-						SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
-					else
-						if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] <= seq_id ) then
-							SonosDB[householdid][target_type][target_value][sonos_type] = body
-							SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
-						else
-							debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
-						end
-					end				
+					return onGroupCoordinatorChanged(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+				-- 	if (body.groupStatus=="GROUP_STATUS_GONE") then
+				-- 		group disappeared, kill it
+				-- 		clearDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type)
+				-- 		getGroups(lul_device, householdid )
+				-- 	elseif (body.groupStatus=="GROUP_STATUS_UPDATED") then
+				-- 		udpate name which has changed
+				-- 		SonosDB[householdid][target_type][target_value]['core']['name'] = body.groupName
+				-- 	end
+				elseif (sonos_type=='groups') then
+					return onGroupsNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+				else 
+					return onDefaultNotificaton(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				end
 			end
 		end
 	else
 		SonosDB[householdid] = {}
+		return true
 	end
+	return false
 end
 
 local function resetRefreshMetadataLoop(lul_device)
@@ -439,9 +502,25 @@ function getGroups(lul_device, hid )
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/groups",hid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
+		local updatedGroups= {} -- = SonosDB[hid].groupId
 		for i,grp in pairs(response.groups) do
 			setDBValue(lul_device,0,hid,'groupId',grp.id,'core', grp )
+			updatedGroups[ grp.id ] = true
 		end
+		debug(string.format("received groups %s",json.encode(updatedGroups)))
+
+		-- now remove all the groups from the DB which were not reported back
+		for hid,household in pairs(SonosDB) do
+			for gid,group in pairs(household.groupId) do
+				-- if gif was not updated, then kill it
+				if (updatedGroups[gid]==nil) then
+					debug(string.format("group %s was not updated, delete it",gid))
+					unsubscribeGroup(lul_device, group)
+					SonosDB[hid].groupId[gid] = nil
+				end
+			end
+		end
+
 		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "Players", json.encode(response.players), lul_device)
 		-- luup.variable_set(ALTSonos_SERVICE, "Groups", json.encode(response.groups), lul_device)
@@ -484,6 +563,7 @@ local function getVolume(lul_device, gid)
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume",gid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
+		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		luup.variable_set(ALTSonos_SERVICE, "LastVolume", response.volume, lul_device)
 		return response.volume
 	end
@@ -496,7 +576,7 @@ local function setVolumeRelative( lul_device, gid, delta )
 	delta = delta or 0
 	
 	local householdid = findGroupHousehold(gid)
-	local curvol = getDBValue(lul_device,householdid,'groupId',gid,'groupVolume' )
+	local curvol = getDBValue(lul_device,householdid,'groupId',gid,'groupVolume' ) or 0
 	curvol.volume = curvol.volume + delta
 	setDBValue(lul_device,0,householdid,'groupId',gid,'groupVolume', curvol )
 
@@ -505,6 +585,7 @@ local function setVolumeRelative( lul_device, gid, delta )
 		volumeDelta=delta
 	})	
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	debug(string.format("updated DB %s",json.encode(SonosDB)))
 	resetRefreshMetadataLoop(lul_device)
 	return response,msg
 end
@@ -534,19 +615,19 @@ local function increaseTimer(current)
 	return result
 end
 
-function refreshMetadata(data)
-	debug(string.format("refreshMetadata(%s) - current SeqId:#%s",data,SeqId))
-	local obj = json.decode(data)
+function refreshMetadata(params)
+	debug(string.format("refreshMetadata(%s) - current SeqId:#%s",params,SeqId))
+	local obj = json.decode(params)
 	local lul_device = tonumber(obj.lul_device)
 	local oldSeqId = tonumber(obj.lul_data)
 
 	local url = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
 	local code,data,result = luup.inet.wget(url)
 	if (code==0) then
+		debug(string.format("refreshMetadata: received %s",data))
 		if (data =="[]") then
 			SonosEventTimer = increaseTimer(SonosEventTimer)
 		else
-			debug(string.format("received metadata message: %s",data))
 			local arr = json.decode(data)
 			debug(string.format("metadata with %d messages",tablelength(arr)))			
 			for k,msg in pairs(arr) do
@@ -557,13 +638,13 @@ function refreshMetadata(data)
 			SonosEventTimer = SonosEventTimerMin
 		end
 		if (oldSeqId < SeqId ) then
-			warning(string.format("Obsolete refreshMetadata callback, ignoring.  %d %d",oldSeqId,SeqId))
+			warning(string.format("Obsolete refreshMetadata callback, ignoring seq:%d expecting:%d",oldSeqId,SeqId))
 		else
 			debug(string.format("refreshMetadata: received metadata -- rearming for %s seconds.",SonosEventTimer))		
 			luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))		
 		end
 	else
-		warning(string.format("luup.variable_get(%s) returned a bad code: %d , result:%s", url,code,result or 'nil'))
+		warning(string.format("luup.inet.wget(%s) returned a bad code: %d , result:%s", url,code,result or 'nil'))
 	end
 	return true
 end
@@ -711,10 +792,14 @@ local function setGroupMembers(lul_device, groupID, playerIDs)
 		["playerIds"] = players
 	})	
 	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-
+	if (response~=nil) then
+		-- response.group is a group object
+		local hid = findGroupHousehold(groupID)
+		setDBValue(lul_device,0,hid,'groupId',response.group.id,'core', response.group )
+		resetRefreshMetadataLoop(lul_device)
+	end
 	--"{\"group\":{\"id\":\"RINCON_5CAAFD05CA4E01400:2985\",\"name\":\"Séjour + 1\",\"coordinatorId\":\"RINCON_5CAAFD05CA4E01400\",\"playerIds\":[\"RINCON_5CAAFD05CA4E01400\",\"RINCON_5CAAFD48412A01400\"]}}"
-
-	luup.call_delay("syncDevices", 5, lul_device)
+	--luup.call_delay("syncDevices", 5, lul_device)
 	return response,msg	
 end
 
@@ -739,6 +824,26 @@ function subscribeDeferred(data)
 	end
 end
 
+function unsubscribeGroup(lul_device,group)
+	debug(string.format("unsubscribeGroup(%s,%s)",lul_device,json.encode(group)))
+	local tbl = {
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="DELETE"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="DELETE"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="DELETE"},
+	}
+	luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
+end
+
+function subscribeGroup(lul_device,group)
+	debug(string.format("subscribeGroup(%s,%s)",lul_device,json.encode(group)))
+	local tbl = {
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="POST"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="POST"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="POST"},
+	}
+	luup.call_delay("subscribeDeferred", 5, json.encode(tbl))
+end
+
 local function subscribeMetadata(lul_device,hid)
 	debug(string.format("subscribeMetadata(%s)",lul_device))
 	lul_device = tonumber(lul_device)
@@ -747,23 +852,22 @@ local function subscribeMetadata(lul_device,hid)
 	-- groups = json.decode( groups )
 	groups = SonosDB[hid].groupId
 	
-	-- unsubscribe
+	-- unsubscribe groups notifications
+	local tbl = {
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/households/%s/groups/subscription",hid), verb="DELETE"},
+	}
+	luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
+	local tbl = {
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/households/%s/groups/subscription",hid), verb="POST"},
+	}
+	luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
+
 	for k,group in pairs(groups) do
-		local tbl = {
-			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="DELETE"},
-			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="DELETE"},
-			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="DELETE"},
-		}
-		luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
+		unsubscribeGroup(lul_device,group)
 	end
 	-- subscribe
 	for k,group in pairs(groups) do
-		local tbl = {
-			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="POST"},
-			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="POST"},
-			{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="POST"},
-		}
-		luup.call_delay("subscribeDeferred", 5, json.encode(tbl))
+		subscribeGroup(lul_device,group)
 	end
 	
 	-- start a new engine loop
