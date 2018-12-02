@@ -297,7 +297,7 @@ var ALTSonos = (function(api,$) {
 
 				jQuery.each( groups , function(idx,groupkey) {
 					var group = household.groupId[groupkey]
-					var players = jQuery.map(group.core.playerIds, function(elem,idx) {
+					var players = jQuery.map(group.core.playerIds || [], function(elem,idx) {
 						return playerMap[elem].name
 					})
 
@@ -442,7 +442,7 @@ var ALTSonos = (function(api,$) {
 
 						var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetGroupMembers",{groupID:gid, playerIDs: selected.join(",") })
 						jQuery.get(url).done( function() {
-							alert('done')
+							// alert('done')
 						})
 						jQuery("#altsonos-group-dlg").modal('hide');	// will trigger hidden.bs.modal
 					});

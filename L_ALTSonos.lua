@@ -295,7 +295,7 @@ local function setDBValue(lul_device,seq_id,householdid,target_type,target_value
 					elseif (body.groupStatus=="GROUP_STATUS_UPDATED") then
 						-- udpate name which has changed
 						SonosDB[householdid][target_type][target_value]['core']['name'] = body.groupName
-						getGroups(lul_device, householdid )
+						-- getGroups(lul_device, householdid )
 					end
 				else
 					-- all other use cases
@@ -320,12 +320,10 @@ end
 
 local function resetRefreshMetadataLoop(lul_device)
 	debug(string.format("resetRefreshMetadataLoop(%s), SeqId %s",lul_device,SeqId))
-	if (SonosEventTimer~=SonosEventTimerMin) then
-		warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
-		SeqId = SeqId+1
-		SonosEventTimer = SonosEventTimerMin
-		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
-	end
+	warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
+	SeqId = SeqId+1
+	SonosEventTimer = SonosEventTimerMin
+	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 end
 
 
@@ -541,10 +539,7 @@ function refreshMetadata(data)
 	local obj = json.decode(data)
 	local lul_device = tonumber(obj.lul_device)
 	local oldSeqId = tonumber(obj.lul_data)
-	if (oldSeqId < SeqId ) then
-		warning(string.format("Obsolete refreshMetadata callback, ignoring.  %d %d",oldSeqId,SeqId))
-		return false
-	end
+
 	local url = luup.variable_get(ALTSonos_SERVICE, "CloudFunctionVeraPullUrl", lul_device) 
 	local code,data,result = luup.inet.wget(url)
 	if (code==0) then
@@ -561,8 +556,12 @@ function refreshMetadata(data)
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
-		debug(string.format("refreshMetadata: received metadata -- rearming for %s seconds.",SonosEventTimer))		
-		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+		if (oldSeqId < SeqId ) then
+			warning(string.format("Obsolete refreshMetadata callback, ignoring.  %d %d",oldSeqId,SeqId))
+		else
+			debug(string.format("refreshMetadata: received metadata -- rearming for %s seconds.",SonosEventTimer))		
+			luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))		
+		end
 	else
 		warning(string.format("luup.variable_get(%s) returned a bad code: %d , result:%s", url,code,result or 'nil'))
 	end
@@ -705,6 +704,7 @@ end
 local function setGroupMembers(lul_device, groupID, playerIDs)
 	playerIDs = playerIDs or ''
 	debug(string.format("setGroupMembers(%s,%s,'%s')",lul_device, groupID , playerIDs))
+
 	local players = Split(playerIDs, ',', 0)
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groups/setGroupMembers",groupID)
 	local body = json.encode({
@@ -714,8 +714,7 @@ local function setGroupMembers(lul_device, groupID, playerIDs)
 
 	--"{\"group\":{\"id\":\"RINCON_5CAAFD05CA4E01400:2985\",\"name\":\"Séjour + 1\",\"coordinatorId\":\"RINCON_5CAAFD05CA4E01400\",\"playerIds\":[\"RINCON_5CAAFD05CA4E01400\",\"RINCON_5CAAFD48412A01400\"]}}"
 
-
-	resetRefreshMetadataLoop(lul_device)
+	syncDevices(lul_device)
 	return response,msg	
 end
 
@@ -768,7 +767,8 @@ local function subscribeMetadata(lul_device,hid)
 	end
 	
 	-- start a new engine loop
-	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+	resetRefreshMetadataLoop(lul_device)
+	-- luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
 	return (response ~= nil )
 end
 
@@ -856,14 +856,6 @@ function syncDevices(lul_device)
 	return (households~=nil) and (groups~=nil)
 end
 
-local function startEngine(lul_device)
-	debug(string.format("startEngine(%s)",lul_device))
-	if (syncDevices(lul_device)) then
-		return true
-	end
-	return false
-end
-
 function startupDeferred(lul_device)
 	log("startupDeferred, called on behalf of device:"..lul_device)
 
@@ -913,7 +905,7 @@ function startupDeferred(lul_device)
 	end
 
 	luup.register_handler("myALTSonos_Handler","ALTSonos_Handler")
-	local success = startEngine(lul_device)
+	local success = syncDevices(lul_device)
 	log("startup completed")
 end
 
