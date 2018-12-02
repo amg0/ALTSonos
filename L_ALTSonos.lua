@@ -714,7 +714,7 @@ local function setGroupMembers(lul_device, groupID, playerIDs)
 
 	--"{\"group\":{\"id\":\"RINCON_5CAAFD05CA4E01400:2985\",\"name\":\"Séjour + 1\",\"coordinatorId\":\"RINCON_5CAAFD05CA4E01400\",\"playerIds\":[\"RINCON_5CAAFD05CA4E01400\",\"RINCON_5CAAFD48412A01400\"]}}"
 
-	syncDevices(lul_device)
+	luup.call_delay("syncDevices", 5, lul_device)
 	return response,msg	
 end
 
