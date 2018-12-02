@@ -21,6 +21,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.7 : UI for async notifications , set/change volume , display track album art, play Audio Clip UPNP etc...
 - 0.8 : Cloud Function optimization to remove load from vera backend, versioning and display of versions
 - 0.9 : Display Favorite's icons , take into account Duration parameter for playing audio clips
+- 0.10 : Group Membership editing
 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
@@ -28,7 +29,6 @@ in any cases, not authorized for reseller or commercial usage
 ![Group Play Control User interface](https://raw.githubusercontent.com/amg0/ALTSonos/master/Doc/UI.PNG)
 
 ### Variables
-- Debug : 1 for mode debug enabled
 - ALTSonosKey : secret Sonos OAuth Key - Client ID
 - ALTSonosSecret : secret Sonos OAuth Secret - Client Secret
 - AccessToken : OAuth token standard for Sonos API
@@ -36,12 +36,14 @@ in any cases, not authorized for reseller or commercial usage
 - CloudFunctionAuthUrl : https url of a internet facing callback called by Sonos as part of OAuth authorization
 - CloudFunctionEventUrl : https url of a internet facing callback called by Sonos for the async event notifications
 - CloudFunctionVeraPullUrl : https url called by Vera to pull for an eventually incoming message from PubSub/Sonos
+- Debug : 1 for mode debug enabled
 - Favorites : favorites of the Sonos household
 - Households : discovered households ( usually one but could be multiple houses )
 - IconCode : 0 or 100 according to status
 - LastVolume : last result of getVolume command
 - Players : discovered list of players
 - RefreshToken : OAuth token standard for Sonos API
+- UI7Check : true on UI7 or openluup
 - Version : version of the plugin
 
 ### UPNP Actions
@@ -55,7 +57,7 @@ in any cases, not authorized for reseller or commercial usage
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
 - AudioClip : trigger the play of a clip (*urlClip*) on a group (*groupID* or "ALL" for all) for a Duration (*Duration* in sec ) then stop
-
+- SetGroupMembers : set the members of a group (*groupID*), *playerIDs*( csv of player IDs )
 
 ### Handler
 - http://<ip>/port_3480/data_request?id=lr_ALTSonos_Handler&command=GetDBInfo&DeviceNum=<devnum>
