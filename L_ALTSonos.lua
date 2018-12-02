@@ -288,20 +288,22 @@ function clearDBValue(lul_device,seq_id,householdid,target_type,target_value,son
 	return false
 end
 
-function onDefaultNotificaton(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
-	debug(string.format("onDefaultNotificaton(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+function onDefaultNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+	debug(string.format("onDefaultNotification(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	-- all other use cases
-	if (SonosDB[householdid][target_type][target_value][sonos_type] == nil) or (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] == nil ) then
-		SonosDB[householdid][target_type][target_value][sonos_type] = body
-		SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+	SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
+	local tbl = SonosDB[householdid][target_type][target_value]
+	if (tbl[sonos_type] == nil) or (tbl[sonos_type]['seq_id'] == nil ) then
+		tbl[sonos_type] = body
+		tbl[sonos_type]['seq_id'] = seq_id
 		return true
 	else
-		if (SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] <= seq_id ) then
-			SonosDB[householdid][target_type][target_value][sonos_type] = body
-			SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] = seq_id
+		if (tbl[sonos_type]['seq_id'] <= seq_id ) then
+			tbl[sonos_type] = body
+			tbl[sonos_type]['seq_id'] = seq_id
 			return true
 		else
-			debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , SonosDB[householdid][target_type][target_value][sonos_type]['seq_id'] ))
+			debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , tbl[sonos_type]['seq_id'] ))
 		end
 	end
 	return false
@@ -310,10 +312,10 @@ end
 function onGroupCoordinatorChanged(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 	debug(string.format("onGroupCoordinatorChanged(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	if (body.groupStatus=="GROUP_STATUS_GONE") then
-		clearDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type)
+		-- clearDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type)
 		return false
 	end
-	return false --  onDefaultNotificaton(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+	return false --  onDefaultNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 end
 
 function onGroupsNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
@@ -353,7 +355,7 @@ function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos
 	if (target_type ~=nil) then
 		SonosDB[householdid][target_type] = SonosDB[householdid][target_type] or {}
 		if (target_value ~= nil) then
-			SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
+			-- SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 			if (sonos_type ~=nil) then
 				debug(string.format("type:%s body is %s",sonos_type,json.encode(body)))
 				
@@ -370,7 +372,7 @@ function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos
 				elseif (sonos_type=='groups') then
 					return onGroupsNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				else 
-					return onDefaultNotificaton(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+					return onDefaultNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				end
 			end
 		end
