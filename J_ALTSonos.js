@@ -478,8 +478,8 @@ var ALTSonos = (function(api,$) {
 			var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
 			var playerMap = {}
 			jQuery.each( groupkeys, function(idx,groupkey) {
-				group = household['groupId'][groupkey]['core']
-				jQuery.map(group.playerIds, function(playerid,idx) {
+				group = household['groupId'][groupkey]
+				jQuery.map(group.core.playerIds, function(playerid,idx) {
 					playerMap[playerid] = {
 						group:group
 					}
@@ -487,9 +487,10 @@ var ALTSonos = (function(api,$) {
 			})
 			var model = []
 			jQuery.each( players , function(idx,player) {
+				var state = playerMap[player.id].group.playbackStatus.playbackState
 				model.push({
 					name: player.name,
-					state : playerMap[player.id].group.playbackState.substr( "PLAYBACK_STATE_".length ),
+					state : state.substr( "PLAYBACK_STATE_".length ),
 					capabilities: player.capabilities.join(","),
 					id: player.id,
 				})
