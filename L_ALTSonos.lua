@@ -349,7 +349,7 @@ function onGroupsNotification(lul_device,seq_id,householdid,target_type,target_v
 end
 
 function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body )
-	log(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	debug(string.format("setDBValue(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
 	seq_id = tonumber(seq_id or 0)
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -361,14 +361,6 @@ function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos
 				
 				if (sonos_type=='groupCoordinatorChanged') then
 					return onGroupCoordinatorChanged(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
-				-- 	if (body.groupStatus=="GROUP_STATUS_GONE") then
-				-- 		group disappeared, kill it
-				-- 		clearDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos_type)
-				-- 		getGroups(lul_device, householdid )
-				-- 	elseif (body.groupStatus=="GROUP_STATUS_UPDATED") then
-				-- 		udpate name which has changed
-				-- 		SonosDB[householdid][target_type][target_value]['core']['name'] = body.groupName
-				-- 	end
 				elseif (sonos_type=='groups') then
 					return onGroupsNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				else 
@@ -429,7 +421,7 @@ function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype,headers)
 		b64credential = "Bearer ".. token
 	end
 
-	log(string.format("SonosHTTP(%s,%s,%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or "",contenttype or "", json.encode(headers)))
+	debug(string.format("SonosHTTP(%s,%s,%s,%s,%s,%s,%s)",lul_device,path,verb,body,b64credential or "",contenttype or "", json.encode(headers)))
 	
 	headers["Authorization"] = b64credential
 	headers["Content-Length"] = body:len()
