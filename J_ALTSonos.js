@@ -432,8 +432,8 @@ var ALTSonos = (function(api,$) {
 							id: player.id
 						}
 					})
-					var body = array2Table(model,'id',[],'Group Definition','altsonos-grp-tbl-cls','altsonos-grp-tbl',false)
-					var html = ALTSonos.format(dialogModalTemplate,'altsonos-group-dlg','Group',body);
+					var body = array2Table(model,'id',[],'List of players in the group','altsonos-grp-tbl-cls','altsonos-grp-tbl',false)
+					var html = ALTSonos.format(dialogModalTemplate,'altsonos-group-dlg','Group: '+group.id,body);
 					jQuery("#altsonos-main").prepend(html);
 					jQuery('#altsonos-group-dlg').on('hidden.bs.modal', function (e) {
 						jQuery('#altsonos-group-dlg').remove()
