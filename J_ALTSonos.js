@@ -216,11 +216,14 @@ var ALTSonos = (function(api,$) {
 			return db[ first ] // for now, just the first one, later we will do all
 		}
 		function getGroups(household) {
+			if (household.groupId==undefined) 
+				return []
+			
 			var groups = (household.groupId) ? Object.keys(household.groupId) : []
 			return groups
 		}
 		function getFavorites(household) {
-			return household.favorites;
+			return household.favorites || [];
 		}
 		function getName(idx,group) {
 			var data = []
