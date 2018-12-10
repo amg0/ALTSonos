@@ -659,7 +659,7 @@ local function groupPlayPause(lul_device,cmd,groupID)
 	debug(string.format("groupPlayPause(%s,%s,%s)",lul_device,groupID,cmd))
 	if (groupID=="ALL") then
 		for idx,gid in pairs(enumerateGroups()) do
-			local response,msg = groupPlayPauseOneGroup(lul_device,cmd,groupID)
+			local response,msg = groupPlayPauseOneGroup(lul_device,cmd,gid)
 			if (response==nil) then
 				warning(string.format("error encountered in PlayPause command : %s, stopping the loop",msg))
 				return nil,msg
