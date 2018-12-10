@@ -11,15 +11,13 @@
 //-------------------------------------------------------------
 // ALTSonos	 Plugin javascript Tabs
 //-------------------------------------------------------------
-const VOLDELTA = 5
-const CFVERSION = "1.0.1"
+var VOLDELTA = 5
+var CFVERSION = "1.0.1"
 var ALTSonos_myapi = window.api || null
 var ALTSonos = (function(api,$) {
-	
-	var SERVICE = 'urn:upnp-org:serviceId:altsonos1';
-	
-	var splits = jQuery.fn.jquery.split(".");
-	var ui5 = (splits[0]=="1" && splits[1]<="5");
+var SERVICE = 'urn:upnp-org:serviceId:altsonos1';
+var splits = jQuery.fn.jquery.split(".");
+var ui5 = (splits[0]=="1" && splits[1]<="5");
 
 	function isNullOrEmpty(value) {
 		return (value == null || value.length === 0);	// undefined == null also
