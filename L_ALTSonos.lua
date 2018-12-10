@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.10"
+local version		= "v0.11"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -644,8 +644,8 @@ function refreshMetadata(params)
 end
 
 -- cmd = "play" or "pause"
-local function groupPlayPause(lul_device,cmd,groupID)
-	debug(string.format("groupPlay(%s,%s,%s)",lul_device,groupID,cmd))
+local function groupPlayPauseOneGroup(lul_device,cmd,groupID)
+	debug(string.format("groupPlayPauseOneGroup(%s,%s,%s)",lul_device,groupID,cmd))
 	lul_device = tonumber(lul_device)
 	cmd = cmd or "play"
 	local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/%s",groupID,cmd)
@@ -653,6 +653,21 @@ local function groupPlayPause(lul_device,cmd,groupID)
 	
 	resetRefreshMetadataLoop(lul_device)
 	return response,msg
+end
+
+local function groupPlayPause(lul_device,cmd,groupID)
+	debug(string.format("groupPlayPause(%s,%s,%s)",lul_device,groupID,cmd))
+	if (groupID=="ALL") then
+		for idx,gid in pairs(enumerateGroups()) do
+			local response,msg = groupPlayPauseOneGroup(lul_device,cmd,groupID)
+			if (response==nil) then
+				warning(string.format("error encountered in PlayPause command : %s, stopping the loop",msg))
+				return nil,msg
+			end
+		end
+		return
+	end
+	return groupPlayPauseOneGroup(lul_device,cmd,groupID)
 end
 
 local function loadFavorites(lul_device, gid, fid)

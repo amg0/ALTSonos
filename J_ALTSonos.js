@@ -501,6 +501,21 @@ var ALTSonos = (function(api,$) {
 		})
 	};
 
+	function ALTSonos_InstallHelp(deviceID) {
+		var html = `
+		<H1>Installation Help</H1>
+		<p>this plugin requires 2 parts to be functional
+		<ul>
+		<li>The <b>Vera plugin</b> : if you see this , you already have installed the vera plugin, congratulation. you will need to perform the google setup below and enter some urls into the settings tab.</li>
+		<li>The <b>Google Cloud proxy</b> part to act as an intermediate between the SonosCloud and your Vera : this acts as a proxy for the OAUTH token authentication and for the Sonos 
+		Cloud notifications such that you do not have to open any connectivity or ports in your home network directly to your vera system. Vera will poll the google cloud elements which will queue incoming messages from Sonos. 
+		The frequency of polling and queues control is optimize to reduce your costs down and should not be above the google cloud free tier for the services used ( datastore and cloud functions ). refer to the readme file on <a target=_blank href='https://github.com/amg0/ALTSonos'>github</a> for precise installation procedure</li>
+		</ul>
+		</p>
+		`
+		api.setCpanelContent(html);
+	};
+	
 	//-------------------------------------------------------------
 	// Helper functions to build URLs to call VERA code from JS
 	//-------------------------------------------------------------
@@ -660,6 +675,7 @@ var ALTSonos = (function(api,$) {
 		Settings	: ALTSonos_Settings,
 		Households	: ALTSonos_Households,
 		Players		: ALTSonos_Players,
+		InstallHelp : ALTSonos_InstallHelp,
 	}
 	return myModule;
 })(ALTSonos_myapi ,jQuery)
@@ -677,6 +693,9 @@ function ALTSonos_Households (deviceID) {
 function ALTSonos_Players (deviceID) {
 	return ALTSonos.Players(deviceID)
 }	
+function ALTSonos_InstallHelp(deviceID) {
+	return ALTSonos.InstallHelp(deviceID)
+}
 		
 function ALTSonos_Donate(deviceID) {
 	var htmlDonate='<p>Ce plugin est gratuit mais vous pouvez aider l\'auteur par une donation modique qui sera tres appréciée</p><p>This plugin is free but please consider supporting it by a very appreciated donation to the author.</p>';
