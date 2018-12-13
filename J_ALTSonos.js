@@ -269,7 +269,7 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 				if (fav.imageUrl && fav.imageUrl.length>0){
 					name += '<img class="altsonos-btn-fav-img" src="'+fav.imageUrl+'"></img> '
 				} 
-				name += '<span>' + (fav.service.name || '') +":"+fav.name + '</span>'
+				name += '<span>' + ((fav.service && fav.service.name) || '') +":"+fav.name + '</span>'
 				var html = '<button data-favid="' + fav.id + '" class="dropdown-item altsonos-btn-fav" type="button">' + name + '</button>';
 				return html 
 			});
