@@ -769,8 +769,8 @@ function stopStreamUrl(data)
 	groupPlayPause(lul_device,"pause",gid)
 end	
 	
-local function loadStreamUrlGid(lul_device, gid, streamUrl, duration )
-	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' ))
+local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
+	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' , volume or ''))
 	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
 	duration = math.max( SonosPlayStreamStopTimeSec , duration )
 	debug(string.format("corrected duration:%s",duration))
@@ -812,17 +812,17 @@ local function setGroupMembers(lul_device, groupID, playerIDs)
 	return response,msg	
 end
 
-local function loadStreamUrl(lul_device, gid, streamUrl , duration )
-	debug(string.format("loadStreamUrl(%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "" ))
+local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
+	debug(string.format("loadStreamUrl(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "", volume or '' ))
 	if (gid=="ALL") then
 		for idx,gid in pairs(enumerateGroups()) do
-			loadStreamUrlGid(lul_device, gid, streamUrl, duration )
+			loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
 		end
 		return
 	else
 		-- TODO split groups by CSV and iterate for specified groups
 	end
-	return loadStreamUrlGid(lul_device, gid, streamUrl ,duration )
+	return loadStreamUrlGid(lul_device, gid, streamUrl ,duration, volume )
 end
 
 function subscribeDeferred(data)

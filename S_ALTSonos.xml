@@ -53,6 +53,12 @@
             <defaultValue></defaultValue>
             <shortCode>duration</shortCode>
         </stateVariable>	
+        <stateVariable sendEvents="no">
+            <name>volume</name>
+            <dataType>ui4</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>volume</shortCode>
+        </stateVariable>
 	</serviceStateTable>
     <actionList>
         <action>
@@ -171,7 +177,12 @@
 				<direction>in</direction>
 				<relatedStateVariable>duration</relatedStateVariable>
 			</argument>
-            </argumentList>
+			<argument>
+				<name>Volume</name>
+				<direction>in</direction>
+				<relatedStateVariable>volume</relatedStateVariable>
+			</argument>
+		</argumentList>
 		</action>	
 		<action>
 			<name>SetGroupMembers</name>

@@ -83,7 +83,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>AudioClip</name>
 			<job>
-			loadStreamUrl(lul_device, lul_settings.groupID, lul_settings.urlClip, lul_settings.Duration)	
+			loadStreamUrl(lul_device, lul_settings.groupID, lul_settings.urlClip, lul_settings.Duration, lul_settings.Volume)	
 			return 4,0
 			</job>
 		</action>
