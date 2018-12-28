@@ -22,6 +22,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.8 : Cloud Function optimization to remove load from vera backend, versioning and display of versions
 - 0.9 : Display Favorite's icons , take into account Duration parameter for playing audio clips
 - 0.10 : Group Membership editing
+- 0.12 : Ability to pass a playerID in the UPNP api where a groupID is expected. the api will affect the group currently owning the player
 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
