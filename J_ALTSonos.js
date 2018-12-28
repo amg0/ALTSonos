@@ -375,12 +375,12 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			setTimeout( refreshHtml, 100);
 			
 			function _Command(cmd,gid) {
-				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID:gid})
+				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,cmd,{groupID_playerID:gid})
 				jQuery.get(url)
 			}
 			function _onPlus(e) {
 				var gidx = jQuery(this).parent().data('gidx')
-				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx], volumeDelta:VOLDELTA})
+				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID_playerID:groups[gidx], volumeDelta:VOLDELTA})
 				jQuery.get(url).done( function() {
 					groupkey = groups[gidx]
 					updateVolume(gidx,household.groupId[groupkey],VOLDELTA);
@@ -388,7 +388,7 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			}
 			function _onMinus(e) {
 				var gidx = jQuery(this).parent().data('gidx')
-				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID:groups[gidx], volumeDelta:-VOLDELTA})
+				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"SetVolumeRelative",{groupID_playerID:groups[gidx], volumeDelta:-VOLDELTA})
 				jQuery.get(url).done( function() {
 					groupkey = groups[gidx]
 					updateVolume(gidx,household.groupId[groupkey],-VOLDELTA);
@@ -409,7 +409,7 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			function _onFav(e) {
 				var favid = jQuery(this).data("favid")
 				var gid = jQuery(this).closest('.dropdown').data('gid')
-				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID:gid,favID:favid})
+				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID_playerID:gid,favID:favid})
 				jQuery.get(url)
 			}
 			function _onSeeGroup(e) {
