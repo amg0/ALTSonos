@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.11"
+local version		= "v0.12"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -250,6 +250,33 @@ local function enumerateGroups()
 		end
 	end
 	return groupkeys
+end
+
+local function resolveGroup( gid_pid )
+	debug(string.format("resolveGroup( %s )",gid_pid))
+	local players = getSetVariable(ALTSonos_SERVICE, "Players", lul_device, "")
+	if (players~="") then
+		players = json.decode(players)
+		for i,player in pairs( players ) do
+			if ( player.id == gid_pid ) then
+				-- gid_pid  is a player, search for the group.
+				for hid,household in pairs(SonosDB) do
+					for gid,group in pairs(household.groupId) do
+						for pidx, pid in pairs(group.core.playerIds) do
+							if (pid == gid_pid) then
+								debug(string.format("resolveGroup( %s ): is a player, the group is %s",gid_pid,gid))
+								return gid
+							end
+						end
+					end
+				end				
+			end
+		end
+		-- not a playerid, fall back to group branch
+	end
+	-- gid_pid  is a group
+	debug(string.format("resolveGroup( %s ): is a group",gid_pid))
+	return gid_pid
 end
 
 local function getDBValue(lul_device,householdid,target_type,target_value,sonos_type )
@@ -554,6 +581,8 @@ end
 
 local function getVolume(lul_device, gid)
 	debug(string.format("getVolume(%s,%s)",lul_device,gid))
+	gid = resolveGroup( gid )
+	debug(string.format("corrected groupID:%s",gid))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume",gid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	if (response ~=nil ) then
@@ -568,6 +597,8 @@ local function setVolumeRelative( lul_device, gid, delta )
 	debug(string.format("setVolumeRelative(%s,%s,%s)",lul_device,gid,delta))
 	lul_device = tonumber(lul_device)
 	delta = delta or 0
+	gid = resolveGroup( gid )
+	debug(string.format("corrected groupID:%s",gid))
 	
 	local householdid = findGroupHousehold(gid)
 	local curvol = getDBValue(lul_device,householdid,'groupId',gid,'groupVolume' ) or 0
@@ -648,6 +679,8 @@ local function groupPlayPauseOneGroup(lul_device,cmd,groupID)
 	debug(string.format("groupPlayPauseOneGroup(%s,%s,%s)",lul_device,groupID,cmd))
 	lul_device = tonumber(lul_device)
 	cmd = cmd or "play"
+	groupID = resolveGroup( groupID )
+	debug(string.format("corrected groupID:%s",groupID))
 	local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/%s",groupID,cmd)
 	local response,msg = SonosHTTP(lul_device,url,"POST")
 	
@@ -672,6 +705,8 @@ end
 
 local function loadFavorites(lul_device, gid, fid)
 	debug(string.format("loadFavorites(%s,%s,%s)",lul_device,gid,fid))
+	gid = resolveGroup( gid )
+	debug(string.format("corrected groupID:%s",gid))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/favorites",gid)
 	local body = json.encode({
 		favoriteId=fid,
@@ -747,6 +782,8 @@ end
 
 local function setPlayMode(lul_device, gid)
 	debug(string.format("setPlayMode(%s,%s)",lul_device, gid ))
+	-- gid = resolveGroup( gid )
+	-- debug(string.format("corrected groupID:%s",gid))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/playMode",gid)
 	local body = json.encode({
 		playModes = {
@@ -774,6 +811,8 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
 	duration = math.max( SonosPlayStreamStopTimeSec , duration )
 	debug(string.format("corrected duration:%s",duration))
+	gid = resolveGroup( gid )
+	debug(string.format("corrected groupID:%s",gid))
 	local response,msg = createSession(lul_device, gid )
 	if (response ~= nil) and (response.sessionId ~= nil) then
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )

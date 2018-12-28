@@ -18,6 +18,12 @@
             <shortCode>groupid</shortCode>
         </stateVariable>
         <stateVariable sendEvents="no">
+            <name>groupID_playerID</name>
+            <dataType>string</dataType>
+            <defaultValue></defaultValue>
+            <shortCode>groupid_playerid</shortCode>
+        </stateVariable>
+        <stateVariable sendEvents="no">
             <name>favID</name>
             <dataType>string</dataType>
             <defaultValue></defaultValue>
@@ -78,9 +84,9 @@
             <name>GetVolume</name>
             <argumentList>
 				<argument>
-					<name>groupID</name>
+					<name>groupID_playerID</name>
 					<direction>in</direction>
-					<relatedStateVariable>groupid</relatedStateVariable>
+					<relatedStateVariable>groupid_playerid</relatedStateVariable>
 				</argument>
 				<argument>
 					<name>LastVolume</name>
@@ -93,9 +99,9 @@
 			<name>SetVolumeRelative</name>
             <argumentList>
 				<argument>
-					<name>groupID</name>
+					<name>groupID_playerID</name>
 					<direction>in</direction>
-					<relatedStateVariable>groupid</relatedStateVariable>
+					<relatedStateVariable>groupid_playerid</relatedStateVariable>
 				</argument>
 				<argument>
 					<name>volumeDelta</name>
@@ -108,9 +114,9 @@
             <name>Play</name>
             <argumentList>
 			<argument>
-				<name>groupID</name>
+				<name>groupID_playerID</name>
 				<direction>in</direction>
-				<relatedStateVariable>groupid</relatedStateVariable>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
 			</argument>
             </argumentList>
         </action>
@@ -118,9 +124,9 @@
             <name>Pause</name>
             <argumentList>
 			<argument>
-				<name>groupID</name>
+				<name>groupID_playerID</name>
 				<direction>in</direction>
-				<relatedStateVariable>groupid</relatedStateVariable>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
 			</argument>
             </argumentList>
         </action>
@@ -128,9 +134,9 @@
             <name>Prev</name>
             <argumentList>
 			<argument>
-				<name>groupID</name>
+				<name>groupID_playerID</name>
 				<direction>in</direction>
-				<relatedStateVariable>groupid</relatedStateVariable>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
 			</argument>
             </argumentList>
         </action>
@@ -138,9 +144,9 @@
             <name>Next</name>
             <argumentList>
 			<argument>
-				<name>groupID</name>
+				<name>groupID_playerID</name>
 				<direction>in</direction>
-				<relatedStateVariable>groupid</relatedStateVariable>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
 			</argument>
             </argumentList>
         </action>
@@ -148,9 +154,9 @@
 			<name>LoadFavorite</name>
             <argumentList>
 			<argument>
-				<name>groupID</name>
+				<name>groupID_playerID</name>
 				<direction>in</direction>
-				<relatedStateVariable>groupid</relatedStateVariable>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
 			</argument>
 			<argument>
 				<name>favID</name>
@@ -163,9 +169,9 @@
 			<name>AudioClip</name>
             <argumentList>
 			<argument>
-				<name>groupID</name>
+				<name>groupID_playerID</name>
 				<direction>in</direction>
-				<relatedStateVariable>groupid</relatedStateVariable>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
 			</argument>
 			<argument>
 				<name>urlClip</name>

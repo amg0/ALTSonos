@@ -25,7 +25,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>GetVolume</name>
 			<run>
-			local v= getVolume(lul_device, lul_settings.groupID)
+			local v= getVolume(lul_device, lul_settings.groupID_playerID)
 			lul_settings.LastVolume = v
 			luup.variable_set("urn:upnp-org:serviceId:altsonos1", "LastVolume", v, lul_device)
 			luup.variable_get("urn:upnp-org:serviceId:altsonos1", "LastVolume",lul_device)
@@ -35,7 +35,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>SetVolumeRelative</name>
 			<job>
-			setVolumeRelative(lul_device, lul_settings.groupID, lul_settings.volumeDelta)
+			setVolumeRelative(lul_device, lul_settings.groupID_playerID, lul_settings.volumeDelta)
 			return 4,0
 			</job>
 		</action>	
@@ -43,7 +43,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Play</name>
 			<job>
-			groupPlayPause(lul_device,"play",lul_settings.groupID)
+			groupPlayPause(lul_device,"play",lul_settings.groupID_playerID)
 			return 4,0
 			</job>
 		</action>	         
@@ -51,7 +51,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Pause</name>
 			<job>
-			groupPlayPause(lul_device,"pause",lul_settings.groupID)
+			groupPlayPause(lul_device,"pause",lul_settings.groupID_playerID)
 			return 4,0
 			</job>
 		</action>	         
@@ -59,7 +59,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Prev</name>
 			<job>
-			groupPlayPause(lul_device,"skipToPreviousTrack",lul_settings.groupID)
+			groupPlayPause(lul_device,"skipToPreviousTrack",lul_settings.groupID_playerID)
 			return 4,0
 			</job>
 		</action>	
@@ -67,7 +67,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>Next</name>
 			<job>
-			groupPlayPause(lul_device,"skipToNextTrack",lul_settings.groupID)
+			groupPlayPause(lul_device,"skipToNextTrack",lul_settings.groupID_playerID)
 			return 4,0
 			</job>
 		</action>	
@@ -75,7 +75,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>LoadFavorite</name>
 			<job>
-			loadFavorites(lul_device, lul_settings.groupID, lul_settings.favID)
+			loadFavorites(lul_device, lul_settings.groupID_playerID, lul_settings.favID)
 			return 4,0
 			</job>
 		</action>
@@ -83,7 +83,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>AudioClip</name>
 			<job>
-			loadStreamUrl(lul_device, lul_settings.groupID, lul_settings.urlClip, lul_settings.Duration, lul_settings.Volume)	
+			loadStreamUrl(lul_device, lul_settings.groupID_playerID, lul_settings.urlClip, lul_settings.Duration, lul_settings.Volume)	
 			return 4,0
 			</job>
 		</action>
