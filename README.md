@@ -23,7 +23,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.9 : Display Favorite's icons , take into account Duration parameter for playing audio clips
 - 0.10 : Group Membership editing
 - 0.12 : Ability to pass a playerID in the UPNP api where a groupID is expected. the api will affect the group currently owning the player
-
+- 0.13 : respect Volume parameter in AudioClip UPNP action if specified ( set new volume and restore old one after )
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
 ### UI

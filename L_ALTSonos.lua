@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.12"
+local version		= "v0.13"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -804,6 +804,9 @@ function stopStreamUrl(data)
 	lul_device = tonumber(obj.lul_device)
 	gid = obj.gid
 	groupPlayPause(lul_device,"pause",gid)
+	if (obj.delta ~= 0) then
+		setVolumeRelative( lul_device, gid, obj.delta )
+	end
 end	
 	
 local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
@@ -815,6 +818,14 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	debug(string.format("corrected groupID:%s",gid))
 	local response,msg = createSession(lul_device, gid )
 	if (response ~= nil) and (response.sessionId ~= nil) then
+	
+		local delta = 0
+		if (volume ~= nil) then
+			oldvolume = tonumber( getVolume(lul_device, gid) or 0 )
+			delta = tonumber(volume) - oldvolume
+			setVolumeRelative( lul_device, gid, delta )
+		end
+	
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
 		local body = json.encode({
 			streamUrl=streamUrl,
@@ -822,7 +833,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
 		-- groupPlayPause(lul_device,"play",gid)
-		luup.call_delay("stopStreamUrl", duration, json.encode({lul_device=lul_device, gid=gid}))
+		luup.call_delay("stopStreamUrl", duration, json.encode({lul_device=lul_device, gid=gid, delta= -delta }))
 		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
