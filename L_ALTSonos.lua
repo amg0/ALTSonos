@@ -20,9 +20,9 @@ local socket = require("socket")
 local modurl = require ("socket.url")
 local mime = require("mime")
 local https = require ("ssl.https")	
-local SonosEventTimer = 2
-local SonosEventTimerMin = SonosEventTimer
+local SonosEventTimerMin = 2
 local SonosEventTimerMax = 3600
+local SonosEventTimer = SonosEventTimerMin
 local SonosEventDecayCount = 4
 local SonosPlayStreamStopTimeSec = 7
 local SonosDB = {}
@@ -429,10 +429,12 @@ end
 
 local function resetRefreshMetadataLoop(lul_device)
 	debug(string.format("resetRefreshMetadataLoop(%s), SeqId %s",lul_device,SeqId))
-	warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
-	SeqId = SeqId+1
-	SonosEventTimer = SonosEventTimerMin
-	luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+	if ( (SonosEventTimer ~= SonosEventTimerMin) or (SeqId==0) ) then
+		warning(string.format("resetLoop, SeqId %s=>%s",SeqId,SeqId+1))
+		SeqId = SeqId+1
+		SonosEventTimer = SonosEventTimerMin
+		luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
+	end
 end
 
 
@@ -665,9 +667,10 @@ local function increaseTimer(current)
 	return result
 end
 
+-- params is json.encode({lul_device=lul_device, lul_data=SeqId})
 function refreshMetadata(params)
 	debug(string.format("refreshMetadata(%s) - current SeqId:#%s",params,SeqId))
-	local obj = json.decode(params)
+	local obj = json.decode(params)	
 	local lul_device = tonumber(obj.lul_device)
 	local oldSeqId = tonumber(obj.lul_data)
 
@@ -687,6 +690,8 @@ function refreshMetadata(params)
 			debug(string.format("updated DB %s",json.encode(SonosDB)))
 			SonosEventTimer = SonosEventTimerMin
 		end
+		
+		-- program the next occurence
 		if (oldSeqId < SeqId ) then
 			warning(string.format("Obsolete refreshMetadata callback, ignoring seq:%d expecting:%d",oldSeqId,SeqId))
 		else
