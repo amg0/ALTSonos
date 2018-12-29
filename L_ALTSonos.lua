@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.13"
+local version		= "v0.14"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -253,7 +253,6 @@ local function enumerateGroups()
 end
 
 local function resolveGroup( gid_pid )
-	debug(string.format("resolveGroup( %s )",gid_pid))
 	local players = getSetVariable(ALTSonos_SERVICE, "Players", lul_device, "")
 	if (players~="") then
 		players = json.decode(players)
@@ -275,7 +274,6 @@ local function resolveGroup( gid_pid )
 		-- not a playerid, fall back to group branch
 	end
 	-- gid_pid  is a group
-	debug(string.format("resolveGroup( %s ): is a group",gid_pid))
 	return gid_pid
 end
 
@@ -310,13 +308,14 @@ function clearDBValue(lul_device,seq_id,householdid,target_type,target_value,son
 	debug(string.format("clearDBValue(%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or ''))
 	if (target_type ~=nil) and (target_value ~= nil) then
 		SonosDB[householdid][target_type][target_value] = nil
+		debug(string.format("updated DB %s",json.encode(SonosDB)))
 		return true
 	end
 	return false
 end
 
 function onDefaultNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
-	debug(string.format("onDefaultNotification(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	debug(string.format("onDefaultNotification(%s,%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or '',json.encode(body or 'nil')))
 	-- all other use cases
 	SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 	local tbl = SonosDB[householdid][target_type][target_value]
@@ -327,13 +326,37 @@ function onDefaultNotification(lul_device,seq_id,householdid,target_type,target_
 	else
 		if (tbl[sonos_type]['seq_id'] <= seq_id ) then
 			tbl[sonos_type] = body
-			tbl[sonos_type]['seq_id'] = seq_id
+			if (body ~=nil) then
+				tbl[sonos_type]['seq_id'] = seq_id
+			end
 			return true
 		else
 			debug(string.format("ignoring out of sequence seq_id %s , DB contains %s",seq_id , tbl[sonos_type]['seq_id'] ))
 		end
 	end
 	return false
+end
+
+function onPlaybackStatusNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+	debug(string.format("onPlaybackStatusNotification(%s,%s,%s,%s,%s,%s)",lul_device,seq_id or 'nil',householdid,target_type or '',target_value or '',sonos_type or ''))
+	local condition = getDBValue(lul_device,householdid,'groupId',target_value,'altsonos' )
+	debug(string.format("altsonos trigger condition: %s",json.encode(condition or "nil")))
+	if (condition ~=nil ) and (condition.action=='stopAfterPlay') then
+		if (body.playbackState=='PLAYBACK_STATE_PLAYING') then
+			-- condition is reached , mark it in the trigger field
+			condition.trigger = true
+			setDBValue(lul_device,0,householdid,'groupId',target_value,'altsonos',condition )
+		else
+			if (condition.trigger==true) then
+				-- if condition was  reached , we can stop the playing
+				local params = condition.params
+				-- clear the condition 'altsonos' record then stop the stream
+				onDefaultNotification(lul_device,0,householdid,'groupId',target_value,'altsonos', nil)
+				stopStreamUrl(params)
+			end
+		end
+	end
+	return onDefaultNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 end
 
 function onGroupCoordinatorChanged(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
@@ -384,12 +407,14 @@ function setDBValue(lul_device,seq_id,householdid,target_type,target_value,sonos
 		if (target_value ~= nil) then
 			-- SonosDB[householdid][target_type][target_value] = SonosDB[householdid][target_type][target_value] or {}
 			if (sonos_type ~=nil) then
-				debug(string.format("type:%s body is %s",sonos_type,json.encode(body)))
+				debug(string.format("target:%s type:%s body is %s",target_value, sonos_type,json.encode(body)))
 				
 				if (sonos_type=='groupCoordinatorChanged') then
 					return onGroupCoordinatorChanged(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				elseif (sonos_type=='groups') then
 					return onGroupsNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
+				elseif (sonos_type=='playbackStatus') then
+					return onPlaybackStatusNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				else 
 					return onDefaultNotification(lul_device,seq_id,householdid,target_type,target_value,sonos_type, body)
 				end
@@ -813,8 +838,9 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' , volume or ''))
 	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
 	duration = math.max( SonosPlayStreamStopTimeSec , duration )
-	debug(string.format("corrected duration:%s",duration))
+	debug(string.format("warning -- duration is ignored now. ( corrected duration:%s )" ,duration))
 	gid = resolveGroup( gid )
+	hid = findGroupHousehold( gid )
 	debug(string.format("corrected groupID:%s",gid))
 	local response,msg = createSession(lul_device, gid )
 	if (response ~= nil) and (response.sessionId ~= nil) then
@@ -825,15 +851,18 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 			delta = tonumber(volume) - oldvolume
 			setVolumeRelative( lul_device, gid, delta )
 		end
-	
+
+		-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
+		setDBValue(lul_device,0,hid,'groupId',gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=lul_device, gid=gid, delta= -delta }), trigger=false } )
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
 		local body = json.encode({
 			streamUrl=streamUrl,
 			playOnCompletion=true
 		})	
 		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-		-- groupPlayPause(lul_device,"play",gid)
-		luup.call_delay("stopStreamUrl", duration, json.encode({lul_device=lul_device, gid=gid, delta= -delta }))
+		
+		-- no need to programm a duration in this new version. 
+		-- luup.call_delay("stopStreamUrl", duration, json.encode({lul_device=lul_device, gid=gid, delta= -delta }))
 		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
