@@ -860,6 +860,9 @@ end
 	
 local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' , volume or ''))
+	-- start a new engine loop
+	resetRefreshMetadataLoop(lul_device)
+
 	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
 	duration = math.max( SonosPlayStreamStopTimeSec , duration )
 	debug(string.format("warning -- duration is ignored now. ( corrected duration:%s )" ,duration))
@@ -921,7 +924,7 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 		for idx,gid in pairs(enumerateGroups()) do
 			loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
 		end
-		return
+	return
 	else
 		-- TODO split groups by CSV and iterate for specified groups
 	end
