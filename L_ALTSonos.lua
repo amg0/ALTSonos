@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.15"
+local version		= "v0.16"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -20,7 +20,7 @@ local socket = require("socket")
 local modurl = require ("socket.url")
 local mime = require("mime")
 local https = require ("ssl.https")	
-local SonosEventTimerMin = 2
+local SonosEventTimerMin = 1
 local SonosEventTimerMax = 3600
 local SonosEventTimer = SonosEventTimerMin
 local SonosEventDecayCount = 4
@@ -352,7 +352,7 @@ function onPlaybackStatusNotification(lul_device,seq_id,householdid,target_type,
 				-- clear the condition 'altsonos' record then stop the stream
 				onDefaultNotification(lul_device,0,householdid,'groupId',target_value,'altsonos', nil)
 				debug(string.format("altsonos trigger => programming stop of stream. params=%s",condition.params))
-				luup.call_delay("_stopStream", 0.1, condition.params)
+				luup.call_delay("_stopStream", 0, condition.params)
 			end
 		end
 	end
@@ -847,16 +847,16 @@ local function setPlayMode(lul_device, gid)
 	return response,msg
 end
 
-function stopStreamUrl(data)
-	debug(string.format("stopStreamUrl(%s)",data))
-	local obj = json.decode(data)
-	lul_device = tonumber(obj.lul_device)
-	gid = obj.gid
-	groupPlayPause(lul_device,"pause",gid)
-	if (obj.delta ~= 0) then
-		setVolumeRelative( lul_device, gid, obj.delta )
-	end
-end	
+-- function stopStreamUrl(data)
+	-- debug(string.format("stopStreamUrl(%s)",data))
+	-- local obj = json.decode(data)
+	-- lul_device = tonumber(obj.lul_device)
+	-- gid = obj.gid
+	-- groupPlayPause(lul_device,"pause",gid)
+	-- if (obj.delta ~= 0) then
+		-- setVolumeRelative( lul_device, gid, obj.delta )
+	-- end
+-- end	
 	
 local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' , volume or ''))
@@ -865,6 +865,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 
 	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
 	duration = math.max( SonosPlayStreamStopTimeSec , duration )
+	volume = volume or ''
 	debug(string.format("warning -- duration is ignored now. ( corrected duration:%s )" ,duration))
 	gid = resolveGroup( gid )
 	hid = findGroupHousehold( gid )
@@ -873,7 +874,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	if (response ~= nil) and (response.sessionId ~= nil) then
 	
 		local delta = 0
-		if (volume ~= nil) then
+		if (volume ~= '') and (tonumber(volume) ~= 0)then
 			oldvolume = tonumber( getVolume(lul_device, gid) or 0 )
 			delta = tonumber(volume) - oldvolume
 			setVolumeRelative( lul_device, gid, delta )
@@ -895,6 +896,11 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	end
 	warning("could not join or create a sonos session")
 	return nil,"could not create a sonos session"
+end
+
+function _loadStreamUrlGid(data)
+	local obj = json.decode(data)
+	return loadStreamUrlGid(obj.lul_device, obj.gid, obj.streamUrl, obj.duration , obj.volume)
 end
 
 local function setGroupMembers(lul_device, groupID, playerIDs)
@@ -922,9 +928,10 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	debug(string.format("loadStreamUrl(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "", volume or '' ))
 	if (gid=="ALL") then
 		for idx,gid in pairs(enumerateGroups()) do
-			loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
+			-- loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
+			luup.call_delay( "_loadStreamUrlGid", 0.1, json.encode({ lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) )
 		end
-	return
+		return
 	else
 		-- TODO split groups by CSV and iterate for specified groups
 	end
