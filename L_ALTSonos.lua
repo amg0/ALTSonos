@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.14"
+local version		= "v0.15"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -349,10 +349,10 @@ function onPlaybackStatusNotification(lul_device,seq_id,householdid,target_type,
 		else
 			if (condition.trigger==true) then
 				-- if condition was  reached , we can stop the playing
-				local params = condition.params
 				-- clear the condition 'altsonos' record then stop the stream
 				onDefaultNotification(lul_device,0,householdid,'groupId',target_value,'altsonos', nil)
-				stopStreamUrl(params)
+				debug(string.format("altsonos trigger => programming stop of stream. params=%s",condition.params))
+				luup.call_delay("_stopStream", 0.1, condition.params)
 			end
 		end
 	end
@@ -620,7 +620,7 @@ local function getVolume(lul_device, gid)
 	return nil
 end
 
-local function setVolumeRelative( lul_device, gid, delta )
+function setVolumeRelative( lul_device, gid, delta )
 	debug(string.format("setVolumeRelative(%s,%s,%s)",lul_device,gid,delta))
 	lul_device = tonumber(lul_device)
 	delta = delta or 0
@@ -762,6 +762,25 @@ local function audioClip(lul_device, pid, urlClip )
 	return response,msg
 end
 
+function suspendSession(lul_device, sessionid, queueVersion)
+	debug(string.format("suspendSession(%s,%s,%s)",lul_device, sessionid, queueVersion or 'nil' ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/suspend",sessionid)
+	local body = json.encode({
+		queueVersion=queueVersion,
+	})	
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	return response,msg
+end
+
+function _stopStream(params)
+	debug(string.format("_stopStream(%s)",params))
+	local obj = json.decode(params)
+	suspendSession(obj.lul_device, obj.sessionid, obj.queueVersion)
+	if (obj.delta ~= 0) then
+		setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
+	end
+end
+
 local function joinOrCreateSession(lul_device, gid )
 	debug(string.format("joinOrCreateSession(%s,%s)",lul_device, gid ))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackSession/joinOrCreate",gid)
@@ -858,7 +877,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 		end
 
 		-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
-		setDBValue(lul_device,0,hid,'groupId',gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=lul_device, gid=gid, delta= -delta }), trigger=false } )
+		setDBValue(lul_device,0,hid,'groupId',gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=lul_device, gid=gid, delta= -delta, sessionid=response.sessionId }), trigger=false } )
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",response.sessionId )
 		local body = json.encode({
 			streamUrl=streamUrl,

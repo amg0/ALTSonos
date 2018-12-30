@@ -24,6 +24,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.10 : Group Membership editing
 - 0.12 : Ability to pass a playerID in the UPNP api where a groupID is expected. the api will affect the group currently owning the player
 - 0.13 : respect Volume parameter in AudioClip UPNP action if specified ( set new volume and restore old one after )
+- 0.15 : improvement of the handling of stopping audio after a message announce ( loadStreamUrl ) on the speakers.
 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
