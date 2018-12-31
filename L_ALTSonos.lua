@@ -351,8 +351,9 @@ function onPlaybackStatusNotification(lul_device,seq_id,householdid,target_type,
 				-- if condition was  reached , we can stop the playing
 				-- clear the condition 'altsonos' record then stop the stream
 				onDefaultNotification(lul_device,0,householdid,'groupId',target_value,'altsonos', nil)
-				debug(string.format("altsonos trigger => programming stop of stream. params=%s",condition.params))
-				luup.call_delay("_stopStream", 0, condition.params)
+				debug(string.format("altsonos trigger => requesting stop of stream. params=%s",condition.params))
+				-- luup.call_delay("_stopStream", 0, condition.params)
+				_stopStream(condition.params)
 			end
 		end
 	end
@@ -860,8 +861,6 @@ end
 	
 local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	debug(string.format("loadStreamUrlGid(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or '' , volume or ''))
-	-- start a new engine loop
-	resetRefreshMetadataLoop(lul_device)
 
 	duration = tonumber(duration or SonosPlayStreamStopTimeSec)
 	duration = math.max( SonosPlayStreamStopTimeSec , duration )
@@ -874,7 +873,7 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 	if (response ~= nil) and (response.sessionId ~= nil) then
 	
 		local delta = 0
-		if (volume ~= '') and (tonumber(volume) ~= 0)then
+		if (volume ~= '') and (tonumber(volume) ~= 0) then
 			oldvolume = tonumber( getVolume(lul_device, gid) or 0 )
 			delta = tonumber(volume) - oldvolume
 			setVolumeRelative( lul_device, gid, delta )
@@ -891,7 +890,6 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 		
 		-- no need to programm a duration in this new version. 
 		-- luup.call_delay("stopStreamUrl", duration, json.encode({lul_device=lul_device, gid=gid, delta= -delta }))
-		resetRefreshMetadataLoop(lul_device)
 		return response,msg	
 	end
 	warning("could not join or create a sonos session")
@@ -932,9 +930,14 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	else
 		groups = Split(gid,",")
 	end
+	
+	-- start a new engine loop
+	resetRefreshMetadataLoop(lul_device)
+	
 	for idx,gid in pairs(groups) do
 		-- loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
-		luup.call_delay( "_loadStreamUrlGid", 0.1, json.encode({ lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) )
+		-- offset groups execution by 1 sec
+		luup.call_delay( "_loadStreamUrlGid", idx, json.encode({ lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) )
 	end
 	return
 end
