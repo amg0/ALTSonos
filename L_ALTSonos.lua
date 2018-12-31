@@ -926,16 +926,17 @@ end
 
 local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	debug(string.format("loadStreamUrl(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "", volume or '' ))
+	local groups = {}
 	if (gid=="ALL") then
-		for idx,gid in pairs(enumerateGroups()) do
-			-- loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
-			luup.call_delay( "_loadStreamUrlGid", 0.1, json.encode({ lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) )
-		end
-		return
+		groups = enumerateGroups()
 	else
-		-- TODO split groups by CSV and iterate for specified groups
+		groups = Split(gid,",")
 	end
-	return loadStreamUrlGid(lul_device, gid, streamUrl ,duration, volume )
+	for idx,gid in pairs(groups) do
+		-- loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
+		luup.call_delay( "_loadStreamUrlGid", 0.1, json.encode({ lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) )
+	end
+	return
 end
 
 function subscribeDeferred(data)
