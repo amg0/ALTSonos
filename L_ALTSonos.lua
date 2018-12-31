@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.16b"
+local version		= "v0.17"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -52,6 +52,57 @@ end
 local function isempty(s)
   return s == nil or s == ""
 end
+
+Queue = {
+	new = function(self,o)
+		o = o or {}	  -- create object if user does not provide one
+		setmetatable(o, self)
+		self.__index = self
+		return o
+	end,
+	size = function(self)
+		return tablelength(self)
+	end,
+	push = function(self,e)
+		return table.insert(self,1,e)
+	end,
+	pull = function(self)
+	    local elem = self[1]
+		table.remove(self,1)
+		return elem
+	end,
+	add = function(self,e)
+		return table.insert(self,e)
+	end,
+	removeItem = function(self, idx)
+		table.remove(self,idx)
+	end,
+	getHead = function(self)
+		local elem = self[1]
+		return elem
+	end,
+	list = function(self)
+		local i = 0
+		return function()
+			if (i<#self) then
+				i=i+1
+				return i,self[i]
+			end
+		end
+	end,
+	listReverse = function(self)
+		local i = #self
+		return function()
+			if (i>0) then
+				local j = i
+				i = i-1
+				return j,self[j]
+			end
+		end
+	end,
+}
+
+local LS_Queue = Queue:new()
 
 ------------------------------------------------
 -- VERA Device Utils
@@ -342,18 +393,24 @@ function onPlaybackStatusNotification(lul_device,seq_id,householdid,target_type,
 	local condition = getDBValue(lul_device,householdid,'groupId',target_value,'altsonos' )
 	debug(string.format("altsonos trigger condition: %s",json.encode(condition or "nil")))
 	if (condition ~=nil ) and (condition.action=='stopAfterPlay') then
-		if (body.playbackState=='PLAYBACK_STATE_PLAYING') then
-			-- condition is reached , mark it in the trigger field
-			condition.trigger = true
-			setDBValue(lul_device,0,householdid,'groupId',target_value,'altsonos',condition )
+		if (condition.trigger==true) then
+			-- if condition was  reached , we can stop the playing
+			-- clear the condition 'altsonos' record then stop the stream
+			onDefaultNotification(lul_device,0,householdid,'groupId',target_value,'altsonos', nil)
+			debug(string.format("altsonos trigger => requesting stop of stream. params=%s",condition.params))
+			local obj = json.decode(condition.params)
+			-- high priority so PUSH instead of ADD
+			LS_Queue:push({ action="_stopStream", lul_device=obj.lul_device, gid=obj.gid, sessionId=obj.sessionId, queueVersion=obj.queueVersion, delta=obj.delta}) 
+			-- immediate execution
+			_processQueue(obj.lul_device)
+			-- if (LS_Queue:size() >0 ) then
+				-- luup.call_delay( "_processQueue", 0, obj.lul_device)
+			-- end
 		else
-			if (condition.trigger==true) then
-				-- if condition was  reached , we can stop the playing
-				-- clear the condition 'altsonos' record then stop the stream
-				onDefaultNotification(lul_device,0,householdid,'groupId',target_value,'altsonos', nil)
-				debug(string.format("altsonos trigger => requesting stop of stream. params=%s",condition.params))
-				-- luup.call_delay("_stopStream", 0, condition.params)
-				_stopStream(condition.params)
+			if (body.playbackState=='PLAYBACK_STATE_PLAYING') then
+				-- condition is reached , mark it in the trigger field
+				condition.trigger = true
+				setDBValue(lul_device,0,householdid,'groupId',target_value,'altsonos',condition )
 			end
 		end
 	end
@@ -773,15 +830,6 @@ function suspendSession(lul_device, sessionid, queueVersion)
 	return response,msg
 end
 
-function _stopStream(params)
-	debug(string.format("_stopStream(%s)",params))
-	local obj = json.decode(params)
-	suspendSession(obj.lul_device, obj.sessionid, obj.queueVersion)
-	if (obj.delta ~= 0) then
-		setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
-	end
-end
-
 local function joinOrCreateSession(lul_device, gid )
 	debug(string.format("joinOrCreateSession(%s,%s)",lul_device, gid ))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackSession/joinOrCreate",gid)
@@ -876,7 +924,9 @@ local function loadStreamUrlGid(lul_device, gid, streamUrl, duration , volume)
 		if (volume ~= '') and (tonumber(volume) ~= 0) then
 			oldvolume = tonumber( getVolume(lul_device, gid) or 0 )
 			delta = tonumber(volume) - oldvolume
-			setVolumeRelative( lul_device, gid, delta )
+			if (delta~=0) then
+				setVolumeRelative( lul_device, gid, delta )
+			end
 		end
 
 		-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
@@ -922,6 +972,64 @@ local function setGroupMembers(lul_device, groupID, playerIDs)
 	return response,msg	
 end
 
+function _processQueue(lul_device)
+	debug(string.format("_processQueue(%s)",lul_device))
+	lul_device = tonumber(lul_device)
+	local obj = LS_Queue:pull()
+	if (obj~=nil) then
+		debug(string.format("Queue object is %s",json.encode(obj)))
+	
+		if (obj.action == "_loadStreamUrlGid") then
+			local gid = resolveGroup(obj.gid)
+			local response,msg = createSession(lul_device, gid )
+			if (response ~= nil) and (response.sessionId ~= nil) then
+				LS_Queue:push({ action="_getVolume", lul_device=lul_device, gid=gid, streamUrl=obj.streamUrl, duration=obj.duration , volume=obj.volume, sessionId=response.sessionId }) 
+			else
+				warning("could not join or create a sonos session")
+			end
+			
+		elseif (obj.action == "_getVolume") then
+			local delta = 0
+			local volume = obj.volume or ''
+			if (volume ~= '') and (tonumber(volume) ~= 0) then
+				oldvolume = tonumber( getVolume(lul_device, obj.gid) or 0 )
+				delta = tonumber(volume) - oldvolume
+				if (delta~=0) then
+					LS_Queue:push({ action="_setVolumeRelative", lul_device=lul_device, gid=obj.gid, delta=delta}) 
+					-- setVolumeRelative( lul_device, obj.gid, delta )
+				end
+			end
+			LS_Queue:add({ action="_startStream", lul_device=lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta, sessionId=obj.sessionId }) 
+		
+		elseif (obj.action == "_startStream") then
+			local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",obj.sessionId )
+			local body = json.encode({
+				streamUrl=obj.streamUrl,
+				playOnCompletion=true
+			})	
+			local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+			if (response ~= nil) then
+				-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
+				local hid = findGroupHousehold(obj.gid)
+				setDBValue(lul_device,0,hid,'groupId',obj.gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=lul_device, gid=obj.gid, delta= obj.delta, sessionId=obj.sessionId }), trigger=false } )
+			end
+			
+		elseif (obj.action == "_setVolumeRelative") then
+			setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
+		
+		elseif (obj.action == "_stopStream") then
+			suspendSession(obj.lul_device, obj.sessionId, obj.queueVersion)
+			if (obj.delta ~= 0) then
+				-- low priority so add in end of queue
+				LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta}) 
+			end
+		end
+	end
+	if (LS_Queue:size() >0 ) then
+		luup.call_delay( "_processQueue", 0, obj.lul_device)
+	end
+end
+
 local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	debug(string.format("loadStreamUrl(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "", volume or '' ))
 	local groups = {}
@@ -937,7 +1045,10 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	for idx,gid in pairs(groups) do
 		-- loadStreamUrlGid(lul_device, gid, streamUrl, duration, volume )
 		-- offset groups execution by 1 sec
-		luup.call_delay( "_loadStreamUrlGid", idx, json.encode({ lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) )
+		LS_Queue:add({ action="_loadStreamUrlGid", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) 
+		if (LS_Queue:size() >0 ) then
+			luup.call_delay( "_processQueue", 0, lul_device)
+		end
 	end
 	return
 end
