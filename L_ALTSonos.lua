@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.17b"
+local version		= "v0.17c beta"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -375,7 +375,11 @@ function onDefaultNotification(lul_device,seq_id,householdid,target_type,target_
 		tbl[sonos_type]['seq_id'] = seq_id
 		return true
 	else
-		if (tbl[sonos_type]['seq_id'] <= seq_id ) then
+		if ((tbl[sonos_type]['seq_id'] <= seq_id ) or (seq_id==0)) then
+			if (seq_id==0) then
+				debug(string.format("sequence seq_id is 0, forcing DB content with former seq_id %s",tbl[sonos_type]['seq_id']))
+				seq_id = tbl[sonos_type]['seq_id']
+			end
 			tbl[sonos_type] = body
 			if (body ~=nil) then
 				tbl[sonos_type]['seq_id'] = seq_id
@@ -434,7 +438,7 @@ function onGroupsNotification(lul_device,seq_id,householdid,target_type,target_v
 		if (old==nil) then
 			--  new group
 			debug(string.format("new group advertised %s, registering for notifications",grp.id))
-			subscribeGroup(lul_device, SonosDB[householdid].groupId[ grp.id ])
+			subscribeGroup(lul_device, grp.id)	-- SonosDB[householdid].groupId[ grp.id ]
 		end
 		updatedGroups[ grp.id ] = true
 	end
@@ -445,7 +449,7 @@ function onGroupsNotification(lul_device,seq_id,householdid,target_type,target_v
 		-- if gif was not updated, then kill it
 		if (updatedGroups[gid]==nil) then
 			debug(string.format("group %s was not updated, delete it",gid))
-			unsubscribeGroup(lul_device, group)
+			unsubscribeGroup(lul_device, gid)
 			SonosDB[householdid].groupId[gid] = nil
 		end
 	end
@@ -618,7 +622,7 @@ function getGroups(lul_device, hid )
 				-- if gif was not updated, then kill it
 				if (updatedGroups[gid]==nil) then
 					debug(string.format("group %s was not updated, delete it",gid))
-					unsubscribeGroup(lul_device, group)
+					unsubscribeGroup(lul_device, gid)
 					SonosDB[hid].groupId[gid] = nil
 				end
 			end
@@ -930,14 +934,9 @@ function _processQueue(lul_device)
 	if (obj~=nil) then
 		debug(string.format("Queue object is %s",json.encode(obj)))
 	
-		if (obj.action == "_loadStreamUrlGid") then
-			local gid = resolveGroup(obj.gid)
-			local response,msg = createSession(lul_device, gid )
-			if (response ~= nil) and (response.sessionId ~= nil) then
-				LS_Queue:push({ action="_getVolume", lul_device=lul_device, gid=gid, streamUrl=obj.streamUrl, duration=obj.duration , volume=obj.volume, sessionId=response.sessionId }) 
-			else
-				warning("could not join or create a sonos session")
-			end
+		if (obj.action == "_unsubscribeEvents") then
+			obj.gid = resolveGroup(obj.gid)
+			LS_Queue:push({ action="_getVolume", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , volume=obj.volume }) 
 			
 		elseif (obj.action == "_getVolume") then
 			local delta = 0
@@ -946,13 +945,23 @@ function _processQueue(lul_device)
 				oldvolume = tonumber( getVolume(lul_device, obj.gid) or 0 )
 				delta = tonumber(volume) - oldvolume
 				if (delta~=0) then
-					LS_Queue:push({ action="_setVolumeRelative", lul_device=lul_device, gid=obj.gid, delta=delta}) 
+					LS_Queue:push({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=delta}) 
 					-- setVolumeRelative( lul_device, obj.gid, delta )
 				end
 			end
-			luup.call_delay( "_deferedAddQueue", 0, json.encode({ action="_startStream", lul_device=lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta, sessionId=obj.sessionId }))
-			-- LS_Queue:add({ action="_startStream", lul_device=lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta, sessionId=obj.sessionId }) 
+			LS_Queue:add({ action="_loadStreamUrlGid", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta })
 		
+		elseif (obj.action == "_setVolumeRelative") then
+			setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
+						
+		elseif (obj.action == "_loadStreamUrlGid") then
+			local response,msg = createSession(obj.lul_device, obj.gid )
+			if (response ~= nil) and (response.sessionId ~= nil) then
+				LS_Queue:push({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=obj.delta, sessionId=response.sessionId })
+			else
+				warning("could not join or create a sonos session")
+			end
+			
 		elseif (obj.action == "_startStream") then
 			local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",obj.sessionId )
 			local body = json.encode({
@@ -963,22 +972,23 @@ function _processQueue(lul_device)
 			if (response ~= nil) then
 				-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
 				local hid = findGroupHousehold(obj.gid)
-				setDBValue(lul_device,0,hid,'groupId',obj.gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=lul_device, gid=obj.gid, delta= obj.delta, sessionId=obj.sessionId }), trigger=false } )
+				setDBValue(lul_device,0,hid,'groupId',obj.gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=obj.lul_device, gid=obj.gid, delta= obj.delta, sessionId=obj.sessionId }), trigger=false } )
 			end
 			
-		elseif (obj.action == "_setVolumeRelative") then
-			setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
-		
 		elseif (obj.action == "_stopStream") then
+			groupPlayPauseOneGroup(obj.lul_device,"pause",obj.gid)
+			LS_Queue:add({ action="_suspendSession", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+
+		elseif (obj.action == "_suspendSession") then
 			suspendSession(obj.lul_device, obj.sessionId, obj.queueVersion)
-			if (obj.delta ~= 0) then
-				-- low priority so add in end of queue
-				LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta}) 
+			-- low priority so add in end of queue
+			if (obj.delta ~=0 ) then
+				LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta})
 			end
 		end
 	end
 	if (LS_Queue:size() >0 ) then
-		luup.call_delay( "_processQueue", 0, obj.lul_device)
+		luup.call_delay( "_processQueue", 0.1, obj.lul_device)
 	end
 end
 
@@ -995,8 +1005,8 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	resetRefreshMetadataLoop(lul_device)
 	
 	for idx,gid in pairs(groups) do
-		luup.call_delay( "_deferedAddQueue", (idx-1), json.encode({ action="_loadStreamUrlGid", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }))
-		-- LS_Queue:add({ action="_loadStreamUrlGid", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) 
+		-- luup.call_delay( "_deferedAddQueue", (idx-1), json.encode({ action="_unsubscribeEvents", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }))
+		LS_Queue:add({ action="_unsubscribeEvents", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) 
 	end
 	if (LS_Queue:size() >0 ) then
 		luup.call_delay( "_processQueue", 0, lul_device)
@@ -1012,24 +1022,42 @@ function subscribeDeferred(data)
 	end
 end
 
-function unsubscribeGroup(lul_device,group)
-	debug(string.format("unsubscribeGroup(%s,%s)",lul_device,json.encode(group)))
+function unsubscribeGroupEssential(lul_device,groupid)
+	debug(string.format("unsubscribeGroupEssential(%s,%s)",lul_device,groupid))
 	local tbl = {
-		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="DELETE"},
-		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="DELETE"},
-		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="DELETE"},
+		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",groupid), verb="DELETE"},
+		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",groupid), verb="DELETE"},
+		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",groupid), verb="DELETE"},
 	}
-	luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
+	subscribeDeferred(json.encode(tbl))
+end
+function subscribeGroupEssential(lul_device,groupid)
+	debug(string.format("subscribeGroupEssential(%s,%s)",lul_device,groupid))
+	local tbl = {
+		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",groupid), verb="POST"},
+		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",groupid), verb="POST"},
+		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",groupid), verb="POST"},
+	}
+	subscribeDeferred(json.encode(tbl))
+end
+function unsubscribeGroup(lul_device,groupid)
+	debug(string.format("unsubscribeGroup(%s,%s)",lul_device,groupid))
+	local tbl = {
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",groupid), verb="DELETE"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",groupid), verb="DELETE"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",groupid), verb="DELETE"},
+	}
+	luup.call_delay("subscribeDeferred", 0, json.encode(tbl))
 end
 
-function subscribeGroup(lul_device,group)
-	debug(string.format("subscribeGroup(%s,%s)",lul_device,json.encode(group)))
+function subscribeGroup(lul_device,gid)
+	debug(string.format("subscribeGroup(%s,%s)",lul_device,gid))
 	local tbl = {
-		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",group.core.id), verb="POST"},
-		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",group.core.id), verb="POST"},
-		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",group.core.id), verb="POST"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",gid), verb="POST"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",gid), verb="POST"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",gid), verb="POST"},
 	}
-	luup.call_delay("subscribeDeferred", 5, json.encode(tbl))
+	luup.call_delay("subscribeDeferred", 0.5, json.encode(tbl))
 end
 
 local function subscribeMetadata(lul_device,hid)
@@ -1050,12 +1078,12 @@ local function subscribeMetadata(lul_device,hid)
 	}
 	luup.call_delay("subscribeDeferred", 1, json.encode(tbl))
 
-	for k,group in pairs(groups) do
-		unsubscribeGroup(lul_device,group)
+	for gid,group in pairs(groups) do
+		unsubscribeGroup(lul_device,gid)
 	end
 	-- subscribe
-	for k,group in pairs(groups) do
-		subscribeGroup(lul_device,group)
+	for gid,group in pairs(groups) do
+		subscribeGroup(lul_device,gid)
 	end
 	
 	-- start a new engine loop
