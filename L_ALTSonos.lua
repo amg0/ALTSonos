@@ -943,7 +943,7 @@ function _processQueueOne(lul_device)
 	lul_device = tonumber(lul_device)
 	local obj = LS_Queue:pull()
 	if (obj~=nil) then
-		log(string.format("Queue step : %s",json.encode(obj)))
+		debug(string.format("Queue step : %s",json.encode(obj)))
 	
 		-- if (obj.action == "_unsubscribeEvents") then
 			-- LS_Queue:add({ action="_startAudioClip", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , volume=obj.volume }) 
@@ -999,7 +999,7 @@ function _processQueueOne(lul_device)
 		elseif (obj.action == "_monitorPlayEnd") then
 			local response,msg = getPlaybackStatus(obj.lul_device, obj.gid)
 			if (response.playbackState~='PLAYBACK_STATE_PLAYING') then
-				log(string.format("Queue step : stopping gid %s",obj.gid))
+				debug(string.format("Queue step : stopping gid %s",obj.gid))
 				groupPlayPauseOneGroup(obj.lul_device,"pause",obj.gid)
 				LS_Queue:add({ action="_killSession", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
 			else
