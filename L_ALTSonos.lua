@@ -111,6 +111,7 @@ Queue = {
 }
 
 local LS_Queue = Queue:new()
+local LS_Queue_Pending = Queue:new()
 -- local Polling_Queue = {}
 
 ------------------------------------------------
@@ -1019,6 +1020,14 @@ end
 function _processQueue(lul_device)
 	debug(string.format("_processQueue(%s)",lul_device))
 	_processQueueOne(lul_device)
+	if (LS_Queue:size() ==0 ) then
+		-- LS_Queue size is null, lets take whats waiting in pending list
+		local obj = LS_Queue_Pending:pull()
+		if (obj~=nil) then
+			debug(string.format("Queue step : taking action from pending list %s",json.encode(obj)))
+			LS_Queue:add( obj )
+		end
+	end
 	if (LS_Queue:size() >0 ) then
 		luup.call_delay( "_processQueue", PROCESS_QUEUE_DELAY, lul_device)
 	end
@@ -1036,12 +1045,16 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	-- start a new engine loop
 	resetRefreshMetadataLoop(lul_device)
 	
+	-- was the engine running
+	local bRunning = (LS_Queue:size() ~=0)
+	
 	for idx,gid in pairs(groups) do
 		-- luup.call_delay( "_deferedAddQueue", (idx-1)*4, json.encode({ action="_unsubscribeEvents", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }))
-		LS_Queue:add({ action="_startAudioClip", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) 
+		LS_Queue_Pending:add({ action="_startAudioClip", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) 
 	end
-	if (LS_Queue:size() >0 ) then
-		luup.call_delay( "_processQueue", PROCESS_QUEUE_DELAY, lul_device)
+	
+	if (bRunning==false) then
+		_processQueue(lul_device)
 	end
 	return
 end
