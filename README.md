@@ -27,6 +27,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.15 : improvement of the handling of stopping audio after a message announce ( loadStreamUrl ) on the speakers.
 - 0.16 : support specifying a csv list of groupsID or playersID in the AudioClip api
 - 0.18 : improvement of reliability to stop the audio clip from playing in case of multiple groups or players
+- 0.19 : durationMS parameter on the 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
 ### UI
@@ -60,7 +61,7 @@ in any cases, not authorized for reseller or commercial usage
 - Prev : move to the previous item in the selection
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
-- AudioClip : trigger the play of a clip (*urlClip*) on a group (*groupID* or "ALL" for all) for a Duration (*Duration* in sec ) then stop
+- AudioClip : trigger the play of a clip (*urlClip*) on a group (*groupID* or "ALL" for all) for a *optional* Duration if specified (*Duration* in msec ) then stop
 - SetGroupMembers : set the members of a group (*groupID*), *playerIDs*( csv of player IDs )
 
 ### Handler
