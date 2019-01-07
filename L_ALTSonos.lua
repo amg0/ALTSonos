@@ -110,6 +110,41 @@ Queue = {
 	end,
 }
 
+-- for future
+-- Engine = {
+    -- new = function()
+        -- local self = {}	  -- create object if user does not provide one
+        
+        -- -- Private variables:
+        -- local count = 0
+        
+        -- -- Private methods:
+        -- local function mypriv ()
+            -- count = count *10
+        -- end
+        
+        -- -- Public variables:
+        -- self.id = 123
+        
+        -- -- Public methods:
+        -- self.incr = function(self,param)
+            -- count = count + param
+            -- self.id = self.id + param
+            -- mypriv()
+        -- end
+        
+        -- self.getcount = function()
+            -- return count
+        -- end
+        
+        -- self.getid = function(self)
+            -- return self.id
+        -- end
+        
+		-- return self
+    -- end
+-- }
+
 local LS_Queue = Queue:new()
 local LS_Queue_Pending = Queue:new()
 -- local Polling_Queue = {}
@@ -939,6 +974,14 @@ function _deferedAddQueue(param)
 	end
 end
 
+function _forcedStop(params)
+	debug(string.format("_forcedStop(%s)",params))
+	local obj = json.decode(params)
+	local lul_device = obj.lul_device
+	local gid = obj.gid	
+	groupPlayPauseOneGroup(obj.lul_device,"pause",obj.gid)
+end
+
 function _processQueueOne(lul_device)
 	debug(string.format("_processQueueOne(%s)",lul_device))
 	lul_device = tonumber(lul_device)
@@ -969,7 +1012,7 @@ function _processQueueOne(lul_device)
 		elseif (obj.action == "_createSession") then
 			local response,msg = createSession(obj.lul_device, obj.gid )
 			if (response ~= nil) and (response.sessionId ~= nil) then
-				LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=obj.delta, sessionId=response.sessionId })
+				LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
 			else
 				warning("could not join or create a sonos session")
 			end
@@ -985,16 +1028,20 @@ function _processQueueOne(lul_device)
 				-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
 				local hid = findGroupHousehold(obj.gid)
 				setDBValue(lul_device,0,hid,'groupId',obj.gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=obj.lul_device, gid=obj.gid, delta= obj.delta, sessionId=obj.sessionId }), trigger=false } )
-				LS_Queue:push({ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+				LS_Queue:push({ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, duration=obj.duration, delta=obj.delta})
 			end
 			
 		elseif (obj.action == "_monitorPlayStart") then
 			local response,msg = getPlaybackStatus(obj.lul_device, obj.gid)
 			if (response.playbackState=='PLAYBACK_STATE_PLAYING') then
 				LS_Queue:push({ action="_monitorPlayEnd", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+				if (obj.duration ~= nil) then
+					debug(string.format("Queue step : arming _forcedStop for %s ms, %s",obj.duration,obj.gid))
+					luup.call_delay( "_forcedStop", tonumber(obj.duration)/1000, json.encode({lul_device=obj.lul_device, gid=obj.gid}))
+				end
 			else
 				-- _processQueueOne(lul_device)	-- nothing to do, try another record in the queue
-				LS_Queue:insert(2,{ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+				LS_Queue:insert(2,{ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, duration=obj.duration, delta=obj.delta})
 			end
 		
 		elseif (obj.action == "_monitorPlayEnd") then
