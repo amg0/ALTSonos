@@ -1082,6 +1082,7 @@ end
 
 local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	debug(string.format("loadStreamUrl(%s,%s,%s,%s,%s)",lul_device, gid , streamUrl, duration or "", volume or '' ))
+	streamUrl = modurl.unescape(streamUrl)
 	local groups = {}
 	if (gid=="ALL") then
 		groups = enumerateGroups()
