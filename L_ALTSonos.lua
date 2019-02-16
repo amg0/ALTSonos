@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.19"
+local version		= "v0.20"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -1029,29 +1029,39 @@ function _processQueueOne(lul_device)
 				local hid = findGroupHousehold(obj.gid)
 				setDBValue(lul_device,0,hid,'groupId',obj.gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=obj.lul_device, gid=obj.gid, delta= obj.delta, sessionId=obj.sessionId }), trigger=false } )
 				LS_Queue:push({ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, duration=obj.duration, delta=obj.delta})
+			else
+				warning("last request to SONOS returned nil")
 			end
 			
 		elseif (obj.action == "_monitorPlayStart") then
 			local response,msg = getPlaybackStatus(obj.lul_device, obj.gid)
-			if (response.playbackState=='PLAYBACK_STATE_PLAYING') then
-				LS_Queue:push({ action="_monitorPlayEnd", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
-				if (obj.duration ~= nil) then
-					debug(string.format("Queue step : arming _forcedStop for %s ms, %s",obj.duration,obj.gid))
-					luup.call_delay( "_forcedStop", tonumber(obj.duration)/1000, json.encode({lul_device=obj.lul_device, gid=obj.gid}))
+			if (response~=nil) then
+				if( response.playbackState=='PLAYBACK_STATE_PLAYING') then
+					LS_Queue:push({ action="_monitorPlayEnd", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+					if (obj.duration ~= nil) then
+						debug(string.format("Queue step : arming _forcedStop for %s ms, %s",obj.duration,obj.gid))
+						luup.call_delay( "_forcedStop", tonumber(obj.duration)/1000, json.encode({lul_device=obj.lul_device, gid=obj.gid}))
+					end
+				else
+					-- _processQueueOne(lul_device)	-- nothing to do, try another record in the queue
+					LS_Queue:insert(2,{ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, duration=obj.duration, delta=obj.delta})
 				end
 			else
-				-- _processQueueOne(lul_device)	-- nothing to do, try another record in the queue
-				LS_Queue:insert(2,{ action="_monitorPlayStart", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, duration=obj.duration, delta=obj.delta})
+				warning("last request to SONOS returned nil")
 			end
 		
 		elseif (obj.action == "_monitorPlayEnd") then
 			local response,msg = getPlaybackStatus(obj.lul_device, obj.gid)
-			if (response.playbackState~='PLAYBACK_STATE_PLAYING') then
-				debug(string.format("Queue step : stopping gid %s",obj.gid))
-				groupPlayPauseOneGroup(obj.lul_device,"pause",obj.gid)
-				LS_Queue:add({ action="_killSession", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+			if (response~=nil) then
+				if (response.playbackState~='PLAYBACK_STATE_PLAYING') then
+					debug(string.format("Queue step : stopping gid %s",obj.gid))
+					groupPlayPauseOneGroup(obj.lul_device,"pause",obj.gid)
+					LS_Queue:add({ action="_killSession", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+				else
+					LS_Queue:insert(2,{ action="_monitorPlayEnd", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+				end
 			else
-				LS_Queue:insert(2,{ action="_monitorPlayEnd", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
+				warning("last request to SONOS returned nil")
 			end
 		
 		elseif (obj.action == "_killSession") then
