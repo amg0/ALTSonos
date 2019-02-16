@@ -28,6 +28,8 @@ in any cases, not authorized for reseller or commercial usage
 - 0.16 : support specifying a csv list of groupsID or playersID in the AudioClip api
 - 0.18 : improvement of reliability to stop the audio clip from playing in case of multiple groups or players
 - 0.19 : taking into account duration parameter if specified on the AudioClip UPNP action 
+- 0.20 : implement AudioClip2 UPNP method to call the real audioClip command from Sonos for supported players ( SonosOne, Beam + it works on my play5 )
+
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
 ### UI
@@ -62,6 +64,7 @@ in any cases, not authorized for reseller or commercial usage
 - Next : move to the previous item in the selection
 - LoadFavorite : select and start playing a given favorite
 - AudioClip : trigger the play of a clip (*urlClip*) on a group (*groupID* or "ALL" for all) for a *optional* Duration if specified (*Duration* in msec ) then stop
+- AudioClip2 : trigger the play of a clip via audioClip method on supported players ( AUDIO_CLIP capability ) : Beam, SonosOne, Play5
 - SetGroupMembers : set the members of a group (*groupID*), *playerIDs*( csv of player IDs )
 
 ### Handler
