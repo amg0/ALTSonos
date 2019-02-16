@@ -373,6 +373,30 @@ local function resolveGroup( gid_pid )
 	return gid_pid
 end
 
+local function findPlayerCapabilities(lul_device,pid)
+	debug(string.format("findPlayerCapabilities(%s,%s)",lul_device,pid))
+	local players = getSetVariable(ALTSonos_SERVICE, "Players", lul_device, "")
+	if (players~="") then
+		players = json.decode(players)
+		for i,player in pairs( players ) do
+			if ( player.id == pid ) then
+				return player.capabilities
+			end
+		end
+	end
+end
+
+local function isCapableOf(lul_device,pid,capability)
+	debug(string.format("isCapableOf(%s,%s,%s)",lul_device,pid,capability))
+	local capabilities = findPlayerCapabilities(lul_device,pid)
+	for i,capa in pairs( capabilities ) do
+		if (capa == capability) then
+			return true
+		end
+	end
+	return false
+end
+
 local function getDBValue(lul_device,householdid,target_type,target_value,sonos_type )
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -833,16 +857,20 @@ end
 
 local function audioClip(lul_device, pid, urlClip )
 	debug(string.format("audioClip(%s,%s,%s)",lul_device, pid, urlClip))
-	local cmd = string.format("api.ws.sonos.com/control/api/v1/players/%s/audioClip",pid)
-	local body = json.encode({
-		name="altsonos audioClip",
-		appId="com.getvera.amg0.altsonos",
-		streamUrl=urlClip
-	})	
+	if ( isCapableOf(lul_device,pid,"AUDIO_CLIP") ) then
+		local cmd = string.format("api.ws.sonos.com/control/api/v1/players/%s/audioClip",pid)
+		local body = json.encode({
+			name="altsonos audioClip",
+			appId="com.getvera.amg0.altsonos",
+			streamUrl=urlClip
+		})	
 
-	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-	resetRefreshMetadataLoop(lul_device)
-	return response,msg
+		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+		resetRefreshMetadataLoop(lul_device)
+		return response,msg
+	end
+	warning(string.format("Player %s is not capable of %s",pid,"AUDIO_CLIP"))
+	return nil,"not capable"
 end
 
 function suspendSession(lul_device, sessionid, queueVersion)

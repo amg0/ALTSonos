@@ -191,6 +191,21 @@
 		</argumentList>
 		</action>	
 		<action>
+			<name>AudioClip2</name>
+            <argumentList>
+			<argument>
+				<name>groupID_playerID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>urlClip</name>
+				<direction>in</direction>
+				<relatedStateVariable>urlclip</relatedStateVariable>
+			</argument>
+		</argumentList>
+		</action>
+		<action>
 			<name>SetGroupMembers</name>
             <argumentList>
 			<argument>
