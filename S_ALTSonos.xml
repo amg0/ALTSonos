@@ -166,6 +166,30 @@
             </argumentList>
 		</action>	
 		<action>
+			<name>LoadStreamUrl</name>
+            <argumentList>
+			<argument>
+				<name>groupID_playerID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>urlClip</name>
+				<direction>in</direction>
+				<relatedStateVariable>urlclip</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>Duration</name>
+				<direction>in</direction>
+				<relatedStateVariable>duration</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>Volume</name>
+				<direction>in</direction>
+				<relatedStateVariable>volume</relatedStateVariable>
+			</argument>
+		</argumentList>
+		</action>		<action>
 			<name>AudioClip</name>
             <argumentList>
 			<argument>

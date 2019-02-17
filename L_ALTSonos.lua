@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.20"
+local version		= "v0.21"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -360,7 +360,7 @@ local function resolveGroup( gid_pid )
 						for pidx, pid in pairs(group.core.playerIds) do
 							if (pid == gid_pid) then
 								debug(string.format("resolveGroup( %s ): is a player, the group is %s",gid_pid,gid))
-								return gid
+								return gid,pid
 							end
 						end
 					end
@@ -370,7 +370,7 @@ local function resolveGroup( gid_pid )
 		-- not a playerid, fall back to group branch
 	end
 	-- gid_pid  is a group
-	return gid_pid
+	return gid_pid,nil
 end
 
 local function findPlayerCapabilities(lul_device,pid)
@@ -391,9 +391,11 @@ local function isCapableOf(lul_device,pid,capability)
 	local capabilities = findPlayerCapabilities(lul_device,pid)
 	for i,capa in pairs( capabilities ) do
 		if (capa == capability) then
+			debug("isCapableOf() => yes")
 			return true
 		end
 	end
+	debug("isCapableOf() => no")
 	return false
 end
 
@@ -1023,7 +1025,7 @@ function _processQueueOne(lul_device)
 		if (obj.action == "_startAudioClip") then
 			local delta = 0
 			local volume = obj.volume or ''
-			obj.gid = resolveGroup(obj.gid)
+			obj.gid, pid = resolveGroup(obj.gid)
 			if (volume ~= '') and (tonumber(volume) ~= 0) then
 				oldvolume = tonumber( getVolume(lul_device, obj.gid) or 0 )
 				delta = tonumber(volume) - oldvolume
@@ -1032,19 +1034,26 @@ function _processQueueOne(lul_device)
 					-- setVolumeRelative( lul_device, obj.gid, delta )
 				end
 			end
-			LS_Queue:add({ action="_createSession", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta })
+			LS_Queue:add({ action="_createSession", lul_device=obj.lul_device, gid=obj.gid, pid=pid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta })
 		
 		elseif (obj.action == "_setVolumeRelative") then
 			setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
 						
 		elseif (obj.action == "_createSession") then
-			local response,msg = createSession(obj.lul_device, obj.gid )
-			if (response ~= nil) and (response.sessionId ~= nil) then
-				LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
+			if (obj.pid ~= nil) and ( isCapableOf(obj.lul_device,obj.pid,"AUDIO_CLIP") ) then
+				local response,msg = audioClip(obj.lul_device, obj.pid, obj.streamUrl )
+				if (obj.delta ~=0 ) then
+					LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta})
+				end
 			else
-				warning("could not join or create a sonos session")
-			end
-			
+				-- request was made on a group
+				local response,msg = createSession(obj.lul_device, obj.gid )
+				if (response ~= nil) and (response.sessionId ~= nil) then
+					LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
+				else
+					warning("could not join or create a sonos session")
+				end
+			end			
 		elseif (obj.action == "_startStream") then
 			local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",obj.sessionId )
 			local body = json.encode({
