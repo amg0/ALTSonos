@@ -399,6 +399,20 @@ local function isCapableOf(lul_device,pid,capability)
 	return false
 end
 
+local function findAudioClipPlayer(lul_device,gid)
+	local hid = findGroupHousehold(gid)
+	if (hid==null) or (gid==null) then
+		return null
+	end
+	local tblPlayers = SonosDB[hid].groupId[gid].core.playerIds
+	for pidx, pid in pairs(tblPlayers) do
+		if (isCapableOf(lul_device,pid,"AUDIO_CLIP")) then
+			return pid
+		end
+	end
+	return null
+end
+
 local function getDBValue(lul_device,householdid,target_type,target_value,sonos_type )
 	SonosDB[householdid] = SonosDB[householdid] or {}
 	if (target_type ~=nil) then
@@ -1047,11 +1061,21 @@ function _processQueueOne(lul_device)
 				end
 			else
 				-- request was made on a group
-				local response,msg = createSession(obj.lul_device, obj.gid )
-				if (response ~= nil) and (response.sessionId ~= nil) then
-					LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
+				-- search a player capable of audioClip
+				local pid = findAudioClipPlayer(obj.lul_device,obj.gid)
+				if (pid ~=null) then
+					local response,msg = audioClip(obj.lul_device, pid, obj.streamUrl )
+					if (obj.delta ~=0 ) then
+						LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta})
+					end
 				else
-					warning("could not join or create a sonos session")
+					-- if not found
+					local response,msg = createSession(obj.lul_device, obj.gid )
+					if (response ~= nil) and (response.sessionId ~= nil) then
+						LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
+					else
+						warning("could not join or create a sonos session")
+					end
 				end
 			end			
 		elseif (obj.action == "_startStream") then
