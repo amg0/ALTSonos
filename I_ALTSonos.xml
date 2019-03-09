@@ -83,7 +83,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>AudioClip2</name>
 			<job>
-			audioClip(lul_device, lul_settings.groupID_playerID, lul_settings.urlClip )
+			audioClip(lul_device, lul_settings.groupID_playerID, lul_settings.urlClip, lul_settings.Volume )
 			return 4,0
 			</job>
 		</action>

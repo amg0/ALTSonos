@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.22"
+local version		= "v0.23"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -871,17 +871,22 @@ local function loadFavorites(lul_device, gid, fid)
 	return response,msg
 end
 
-local function audioClip(lul_device, pid, urlClip )
+local function audioClip(lul_device, pid, urlClip, volume )
+-- volume, nil or between 0 and 100
 	debug(string.format("audioClip(%s,%s,%s)",lul_device, pid, urlClip))
 	if ( isCapableOf(lul_device,pid,"AUDIO_CLIP") ) then
 		local cmd = string.format("api.ws.sonos.com/control/api/v1/players/%s/audioClip",pid)
-		local body = json.encode({
+		local body = {
 			name="altsonos audioClip",
 			appId="com.getvera.amg0.altsonos",
-			streamUrl=urlClip
-		})	
+			streamUrl=urlClip,
+			clipType="CUSTOM"
+		}
+		if (volume~=nil) then
+			body.volume = math.max(0,math.min(tonumber(volume),100))
+		end
 
-		local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+		local response,msg = SonosHTTP(lul_device,cmd,"POST",json.encode(body),nil,'application/json')
 		resetRefreshMetadataLoop(lul_device)
 		return response,msg
 	end
@@ -1045,7 +1050,6 @@ function _processQueueOne(lul_device)
 				delta = tonumber(volume) - oldvolume
 				if (delta~=0) then
 					LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=delta}) 
-					-- setVolumeRelative( lul_device, obj.gid, delta )
 				end
 			end
 			LS_Queue:add({ action="_createSession", lul_device=obj.lul_device, gid=obj.gid, pid=pid, streamUrl=obj.streamUrl, duration=obj.duration , delta=-delta })
@@ -1054,30 +1058,13 @@ function _processQueueOne(lul_device)
 			setVolumeRelative( obj.lul_device, obj.gid, obj.delta )
 						
 		elseif (obj.action == "_createSession") then
-			if (obj.pid ~= nil) and ( isCapableOf(obj.lul_device,obj.pid,"AUDIO_CLIP") ) then
-				local response,msg = audioClip(obj.lul_device, obj.pid, obj.streamUrl )
-				if (obj.delta ~=0 ) then
-					LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta})
-				end
+			local response,msg = createSession(obj.lul_device, obj.gid )
+			if (response ~= nil) and (response.sessionId ~= nil) then
+				LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
 			else
-				-- request was made on a group
-				-- search a player capable of audioClip
-				local pid = findAudioClipPlayer(obj.lul_device,obj.gid)
-				if (pid ~=null) then
-					local response,msg = audioClip(obj.lul_device, pid, obj.streamUrl )
-					if (obj.delta ~=0 ) then
-						LS_Queue:add({ action="_setVolumeRelative", lul_device=obj.lul_device, gid=obj.gid, delta=obj.delta})
-					end
-				else
-					-- if not found
-					local response,msg = createSession(obj.lul_device, obj.gid )
-					if (response ~= nil) and (response.sessionId ~= nil) then
-						LS_Queue:add({ action="_startStream", lul_device=obj.lul_device, gid=obj.gid, streamUrl=obj.streamUrl, duration=obj.duration, delta=obj.delta, sessionId=response.sessionId })
-					else
-						warning("could not join or create a sonos session")
-					end
-				end
-			end			
+				warning("could not join or create a sonos session")
+			end
+			
 		elseif (obj.action == "_startStream") then
 			local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",obj.sessionId )
 			local body = json.encode({
@@ -1168,8 +1155,23 @@ local function loadStreamUrl(lul_device, gid, streamUrl , duration, volume )
 	local bRunning = (LS_Queue:size() ~=0)
 	
 	for idx,gid in pairs(groups) do
-		-- luup.call_delay( "_deferedAddQueue", (idx-1)*4, json.encode({ action="_unsubscribeEvents", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }))
-		LS_Queue_Pending:add({ action="_startAudioClip", lul_device=lul_device, gid=gid, streamUrl=streamUrl, duration=duration , volume=volume }) 
+		local newgid, newpid = resolveGroup(gid)
+		if (newpid ~= nil) and ( isCapableOf(lul_device,newpid,"AUDIO_CLIP") ) then
+			-- the pid was specified and is capable of audio clip
+			local response,message = audioClip(lul_device, newpid, streamUrl, volume )
+		else
+			if (newpid ~=nil) then
+				LS_Queue_Pending:add({ action="_startAudioClip", lul_device=lul_device, gid=newgid, streamUrl=streamUrl, duration=duration , volume=volume }) 
+			else
+				newpid = findAudioClipPlayer(lul_device,newgid)
+				if (newpid~=nil) then
+					-- the pid was not specified , it was a gid, but that gid contains a pid capable of audio clip
+					local response,message = audioClip(lul_device, newpid, streamUrl, volume )
+				else
+					LS_Queue_Pending:add({ action="_startAudioClip", lul_device=lul_device, gid=newgid, streamUrl=streamUrl, duration=duration , volume=volume }) 
+				end
+			end
+		end
 	end
 	
 	if (bRunning==false) then
