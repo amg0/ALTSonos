@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.23"
+local version		= "v0.24"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -882,7 +882,7 @@ local function audioClip(lul_device, pid, urlClip, volume )
 			streamUrl=urlClip,
 			clipType="CUSTOM"
 		}
-		if (volume~=nil) then
+		if (volume~=nil) and ( isempty(volume)==false) then
 			body.volume = math.max(0,math.min(tonumber(volume),100))
 		end
 
@@ -1086,8 +1086,8 @@ function _processQueueOne(lul_device)
 			if (response~=nil) then
 				if( response.playbackState=='PLAYBACK_STATE_PLAYING') then
 					LS_Queue:push({ action="_monitorPlayEnd", lul_device=obj.lul_device, sessionId=obj.sessionId, gid=obj.gid, delta=obj.delta})
-					if (obj.duration ~= nil) then
-						debug(string.format("Queue step : arming _forcedStop for %s ms, %s",obj.duration,obj.gid))
+					if (obj.duration ~= nil) and (obj.duration ~='') then
+						debug(string.format("Queue step : arming _forcedStop for %s ms, %s",obj.duration or "nil",obj.gid))
 						luup.call_delay( "_forcedStop", tonumber(obj.duration)/1000, json.encode({lul_device=obj.lul_device, gid=obj.gid}))
 					end
 				else
