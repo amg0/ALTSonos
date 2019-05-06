@@ -223,7 +223,13 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 		function getFavorites(household) {
 			return household.favorites || [];
 		}
-		function getName(idx,group) {
+		function getName(group) {
+			return ( group.core && group.core.name ) ? group.core.name : "no name"
+		};
+		function getId(group) {
+			return ( group.core && group.core.id ) ? group.core.id : ""
+		}
+		function getTrackName(idx,group) {
 			var data = []
 			if (group.metadataStatus) {
 				if ( group.metadataStatus.currentItem && group.metadataStatus.currentItem.track) {
@@ -256,7 +262,7 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			var on = (playStatus=="PLAYBACK_STATE_PLAYING" || playStatus=="PLAYBACK_STATE_BUFFERING")
 			var cssplay = (on==true) ? "btn-success" : "btn-outline-secondary"
 			var csspause= (on==true) ? "btn-outline-secondary" : "btn-warning"
-			return "<span id='altsonos-cmd-"+idx+"'>"+ALTSonos.format(btnBar,group.core.id, cssplay, csspause)+"</span>"
+			return "<span id='altsonos-cmd-"+idx+"'>"+ALTSonos.format(btnBar,getId(group), cssplay, csspause)+"</span>"
 		}
 		function getVolume(idx,group) {
 			var volhtml = (group.groupVolume) ? ALTSonos.format(btnVol,idx,group.groupVolume.volume) : '?'
@@ -299,21 +305,22 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 				jQuery.each( groups , function(idx,groupkey) {
 					var group = household.groupId[groupkey]
 					if ( (group.groupCoordinatorChanged == undefined ) || (group.groupCoordinatorChanged.groupStatus != "GROUP_STATUS_GONE")) {
-							var players = (group.core) 
-							? jQuery.map(group.core.playerIds || [], function(elem,idx) {
+						var players = []
+						if (group.core && group.core.playerIds) {
+							players = jQuery.map(group.core.playerIds || [], function(elem,idx) {
 								return playerMap[elem].name
 							})
-							: []
+						}
 
 						model.push({
-							name: group.core.name,
+							name: getName(group),
 							// state: group.playbackState.substr( "PLAYBACK_STATE_".length ),
 							members: players.join(","),
-							id: ALTSonos.format("<button data-gid='{0}' data-gidx='{1}'  class='btn btn-sm btn-outline-secondary altsonos-btn-see'><span title='{0}'>See</span></button>",group.core.id,idx),
-							track: getName(idx,group), 
+							id: ALTSonos.format("<button data-gid='{0}' data-gidx='{1}'  class='btn btn-sm btn-outline-secondary altsonos-btn-see'><span title='{0}'>See</span></button>",getId(group),idx),
+							track: getTrackName(idx,group), 
 							img: getImage(idx,group),
 							volume: getVolume(idx,group),
-							favorites: ALTSonos.format(htmlFavoritesTemplate, favmap.join(""), group.core.id),
+							favorites: ALTSonos.format(htmlFavoritesTemplate, favmap.join(""), getId(group)),
 							cmd: getCmd(idx,group) // ALTSonos.format(btnBar,group.core.id, cssplay, csspause)
 						})
 					}
@@ -354,7 +361,7 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 									var group = household.groupId[groupkey]
 									jQuery('#altsonos-cmd-'+idx).replaceWith( getCmd(idx,group) )
 									jQuery('#altsonos-vol-'+idx).replaceWith( getVolume(idx,group) )
-									jQuery('#altsonos-title-'+idx).replaceWith( getName(idx,group) )
+									jQuery('#altsonos-title-'+idx).replaceWith( getTrackName(idx,group) )
 									
 									var newimg = (group.metadataStatus && group.metadataStatus.currentItem) ?  group.metadataStatus.currentItem.track.imageUrl : ""
 									var oldimg = jQuery("#altsonos-img-"+idx).attr('src')
@@ -480,21 +487,25 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			var playerMap = {}
 			jQuery.each( groupkeys, function(idx,groupkey) {
 				group = household['groupId'][groupkey]
-				jQuery.map(group.core.playerIds, function(playerid,idx) {
-					playerMap[playerid] = {
-						group:group
-					}
-				})
+				if (group.core && group.core.playerIds) {
+					jQuery.map(group.core.playerIds, function(playerid,idx) {
+						playerMap[playerid] = {
+							group:group
+						}
+					})
+				}
 			})
 			var model = []
 			jQuery.each( players , function(idx,player) {
-				var state = playerMap[player.id].group.playbackStatus.playbackState
-				model.push({
-					name: player.name,
-					state : state.substr( "PLAYBACK_STATE_".length ),
-					capabilities: player.capabilities.join(","),
-					id: player.id,
-				})
+				if ( playerMap[player.id] ) {
+					var state = playerMap[player.id].group.playbackStatus.playbackState
+					model.push({
+						name: player.name,
+						state : state.substr( "PLAYBACK_STATE_".length ),
+						capabilities: player.capabilities.join(","),
+						id: player.id,
+					})
+				}
 			})
 			var html = array2Table(model,'id',[],'My Players','altsonos-tbl','altsonos-playerstbl',false)
 			// api.setCpanelContent(html);
