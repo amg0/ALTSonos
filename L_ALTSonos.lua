@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.24"
+local version		= "v0.24b"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -20,6 +20,9 @@ local socket = require("socket")
 local modurl = require ("socket.url")
 local mime = require("mime")
 local https = require ("ssl.https")	
+local http_async = require "L_ALTSonos_http_async"
+local ltn12 = require "ltn12"
+
 local SonosEventTimerMin = 2
 local SonosEventTimerMax = 3600
 local SonosEventTimer = SonosEventTimerMin
@@ -586,6 +589,36 @@ local function refreshToken( lul_device )
 	return response,msg
 end
 
+function SonosHTTPAsync(lul_device,path,verb,body,content_type,response_table,request_callback)
+	local verb = verb or "GET"
+	local url = "https://" .. path
+	local body = body or ""
+	local token = luup.variable_get(ALTSonos_SERVICE, "AccessToken", lul_device)	
+	local content_type = content_type or "application/x-www-form-urlencoded"
+
+	debug(string.format("SonosHTTPAsync(%s,%s,%s,%s,%s)",lul_device,path,verb,body,content_type))
+	local headers =  {}
+	headers["Authorization"] = "Bearer ".. token
+	headers["Content-Length"] = body:len()
+	headers["Cache-Control"] =  'no-cache'
+	headers["Content-Type"] = content_type
+	debug(string.format("request headers:%s",json.encode(headers)))
+		
+	local ok, err = http_async.request ({
+			url = url,
+			method=verb,
+			source= ltn12.source.string(body),
+			headers = headers,
+			sink = ltn12.sink.table (response_table),
+			protocol = "tlsv1_2",
+		}, request_callback)
+
+	local func = (ok==1) and debug or error
+	func(string.format("http_async returns %s , %s",ok or "" ,err or "" ))
+
+	return ok,err
+end
+
 function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype,headers)
 	local verb = verb or "GET"
 	local url = "https://" .. path
@@ -715,18 +748,27 @@ local function getHouseholds(lul_device)
 end
 
 local function getFavorites(lul_device, hid)
+	local lul_device = lul_device
+	local getFavorites_response_table = {}
+	
+	function getFavorites_callback (response, code, headers, statusline)
+		debug ("getFavorites_callback status code: " .. (code or '?'))
+		local rep = (type(response) == "string") and response or table.concat (getFavorites_response_table)
+		debug (string.format("CALLBACK length:%d  output:%s",#rep,rep))
+		if (#rep>0) then
+			local favorites = json.decode(rep)
+			for i,fav in pairs(favorites.items) do
+				setDBValue(lul_device,0,hid,'favorites',i,'favorite', fav )
+			end
+			debug(string.format("updated DB %s",json.encode(SonosDB)))
+			luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(favorites.items), lul_device)
+		end
+	end
+
 	debug(string.format("getFavorites(%s,%s)",lul_device,hid))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/favorites",hid)
-	local response,msg = SonosHTTP(lul_device,cmd,"GET")
-	if (response ~=nil ) then
-		for i,fav in pairs(response.items) do
-			setDBValue(lul_device,0,hid,'favorites',i,'favorite', fav )
-		end
-		debug(string.format("updated DB %s",json.encode(SonosDB)))
-		luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(response.items), lul_device)
-		return response.items
-	end
-	return nil
+	local ok,err = SonosHTTPAsync(lul_device,cmd,"GET",nil,nil,getFavorites_response_table,getFavorites_callback)
+	return ok,err
 end
 
 local function getVolume(lul_device, gid)
@@ -755,11 +797,25 @@ function setVolumeRelative( lul_device, gid, delta )
 	curvol.volume = curvol.volume + delta
 	setDBValue(lul_device,0,householdid,'groupId',gid,'groupVolume', curvol )
 
+	local verb = "POST"
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/relative",gid)
 	local body = json.encode({
 		volumeDelta=delta
 	})	
-	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+	
+	-- sync version
+	-- local response,msg = SonosHTTP(lul_device,cmd,verb,body,nil,'application/json')
+	
+	-- async version
+	local response_table={}
+	local response,msg = SonosHTTPAsync(lul_device,cmd,verb,body,'application/json',response_table,
+		function (response, code, headers, statusline) 
+			debug(string.format("setVolumeRelative request_callback. code:%s url:%s-%s", (code or '?') , verb,cmd ) )
+			local rep = (type(response) == "string") and response or table.concat (response_table)
+			debug (string.format("CALLBACK length:%d  output:%s",#rep,rep))
+		end
+	)
+	
 	debug(string.format("updated DB %s",json.encode(SonosDB)))
 	resetRefreshMetadataLoop(lul_device)
 	return response,msg
@@ -835,7 +891,19 @@ local function groupPlayPauseOneGroup(lul_device,cmd,groupID)
 	groupID = resolveGroup( groupID )
 	debug(string.format("corrected groupID:%s",groupID))
 	local url = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/%s",groupID,cmd)
-	local response,msg = SonosHTTP(lul_device,url,"POST")
+	local verb = "POST"
+	
+	-- sync version
+	-- local response,msg = SonosHTTP(lul_device,url,verb)
+	
+	local response_table={}
+	local function request_callback(response, code, headers, statusline) 
+		debug(string.format("groupPlayPauseOneGroup request_callback. code:%s url:%s-%s", (code or '?') , verb,url ) )
+		local rep = (type(response) == "string") and response or table.concat (response_table)
+		debug (string.format("CALLBACK length:%d  output:%s",#rep,rep))
+	end
+	
+	local response,msg = SonosHTTPAsync(lul_device,url,"POST",nil,nil,response_table,request_callback)
 	
 	resetRefreshMetadataLoop(lul_device)
 	return response,msg
@@ -897,11 +965,21 @@ end
 function suspendSession(lul_device, sessionid, queueVersion)
 	debug(string.format("suspendSession(%s,%s,%s)",lul_device, sessionid, queueVersion or 'nil' ))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/suspend",sessionid)
+	local verb = "POST"
 	local body = json.encode({
 		queueVersion=queueVersion,
 	})	
-	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-	return response,msg
+	-- local ok,msg = SonosHTTP(lul_device,cmd,verb,body,nil,'application/json')
+
+	local response_table={}
+	local ok,msg = SonosHTTPAsync(lul_device,cmd,verb,body,'application/json',response_table,
+		function (response, code, headers, statusline) 
+			debug(string.format("suspendSession request_callback. code:%s url:%s-%s", (code or '?') , verb,cmd ) )
+			local rep = (type(response) == "string") and response or table.concat (response_table)
+			debug (string.format("CALLBACK length:%d  output:%s",#rep,rep))
+		end
+	)
+	return ok,msg
 end
 
 local function joinOrCreateSession(lul_device, gid )
@@ -1067,12 +1145,22 @@ function _processQueueOne(lul_device)
 			
 		elseif (obj.action == "_startStream") then
 			local cmd = string.format("api.ws.sonos.com/control/api/v1/playbackSessions/%s/playbackSession/loadStreamUrl",obj.sessionId )
+			local verb ="POST"
 			local body = json.encode({
 				streamUrl=obj.streamUrl,
 				playOnCompletion=true
 			})	
-			local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
-			if (response ~= nil) then
+			-- local response,msg = SonosHTTP(lul_device,cmd,verb,body,nil,'application/json')
+			local response_table={}
+			local ok,msg = SonosHTTPAsync(lul_device,cmd,verb,body,'application/json',response_table,
+				function (response, code, headers, statusline) 
+					debug(string.format("_startStream request_callback. code:%s url:%s-%s", (code or '?') , verb,cmd ) )
+					local rep = (type(response) == "string") and response or table.concat (response_table)
+					debug (string.format("CALLBACK length:%d  output:%s",#rep,rep))
+				end
+			)
+
+			if (ok==1) then
 				-- program a waiting point for the transition out of state playbackState==PLAYBACK_STATE_PLAYING
 				local hid = findGroupHousehold(obj.gid)
 				setDBValue(lul_device,0,hid,'groupId',obj.gid,'altsonos',{action='stopAfterPlay', params=json.encode({lul_device=obj.lul_device, gid=obj.gid, delta= obj.delta, sessionId=obj.sessionId }), trigger=false } )
@@ -1184,28 +1272,16 @@ function subscribeDeferred(data)
 	debug(string.format("subscribeDeferred(%s)",data))
 	local tbl = json.decode(data)
 	for k,obj in pairs(tbl) do
-		local response,msg = SonosHTTP(obj.lul_device,obj.url,obj.verb)
+		local response_table = {}
+		local function request_callback(response, code, headers, statusline) 
+			debug(string.format("subscribeDeferred request_callback. code:%s url:%s-%s", (code or '?') , obj.verb,obj.url ) )
+			local rep = (type(response) == "string") and response or table.concat (response_table)
+			debug (string.format("CALLBACK length:%d  output:%s",#rep,rep))
+		end
+		local ok,err = SonosHTTPAsync(obj.lul_device,obj.url,obj.verb,nil,nil,response_table,request_callback)
 	end
 end
 
-function unsubscribeGroupEssential(lul_device,groupid)
-	debug(string.format("unsubscribeGroupEssential(%s,%s)",lul_device,groupid))
-	local tbl = {
-		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",groupid), verb="DELETE"},
-		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",groupid), verb="DELETE"},
-		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",groupid), verb="DELETE"},
-	}
-	subscribeDeferred(json.encode(tbl))
-end
-function subscribeGroupEssential(lul_device,groupid)
-	debug(string.format("subscribeGroupEssential(%s,%s)",lul_device,groupid))
-	local tbl = {
-		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playbackMetadata/subscription",groupid), verb="POST"},
-		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",groupid), verb="POST"},
-		-- {lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",groupid), verb="POST"},
-	}
-	subscribeDeferred(json.encode(tbl))
-end
 function unsubscribeGroup(lul_device,groupid)
 	debug(string.format("unsubscribeGroup(%s,%s)",lul_device,groupid))
 	local tbl = {
@@ -1213,7 +1289,7 @@ function unsubscribeGroup(lul_device,groupid)
 		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",groupid), verb="DELETE"},
 		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",groupid), verb="DELETE"},
 	}
-	luup.call_delay("subscribeDeferred", 0, json.encode(tbl))
+	subscribeDeferred(json.encode(tbl))
 end
 
 function subscribeGroup(lul_device,gid)
@@ -1223,15 +1299,35 @@ function subscribeGroup(lul_device,gid)
 		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/groupVolume/subscription",gid), verb="POST"},
 		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/groups/%s/playback/subscription",gid), verb="POST"},
 	}
-	luup.call_delay("subscribeDeferred", 0.5, json.encode(tbl))
+	subscribeDeferred(json.encode(tbl))
 end
 
 local function subscribeMetadata(lul_device,hid)
 	debug(string.format("subscribeMetadata(%s)",lul_device))
 	lul_device = tonumber(lul_device)
+	local groups = SonosDB[hid].groupId
+	
+	local tbl = {
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/households/%s/groups/subscription",hid), verb="DELETE"},
+		{lul_device=lul_device, url=string.format("api.ws.sonos.com/control/api/v1/households/%s/groups/subscription",hid), verb="POST"},
+	}
+	subscribeDeferred(json.encode(tbl))
+
+	for gid,group in pairs(groups) do
+		unsubscribeGroup(lul_device,gid)
+	end
+	-- subscribe
+	for gid,group in pairs(groups) do
+		subscribeGroup(lul_device,gid)
+	end
+	-- start a new engine loop
+	resetRefreshMetadataLoop(lul_device)
+end
+
+local function subscribeMetadata_sync(lul_device,hid)
+	debug(string.format("subscribeMetadata(%s)",lul_device))
+	lul_device = tonumber(lul_device)
 	local response,msg = nil,nil
-	-- local groups = luup.variable_get(ALTSonos_SERVICE, "Groups", lul_device)
-	-- groups = json.decode( groups )
 	groups = SonosDB[hid].groupId
 	
 	-- unsubscribe groups notifications
@@ -1255,7 +1351,7 @@ local function subscribeMetadata(lul_device,hid)
 	-- start a new engine loop
 	resetRefreshMetadataLoop(lul_device)
 	-- luup.call_delay("refreshMetadata", SonosEventTimer, json.encode({lul_device=lul_device, lul_data=SeqId}))
-	return (response ~= nil )
+	return 
 end
 
 ------------------------------------------------------------------------------------------------
@@ -1336,7 +1432,7 @@ function syncDevices(lul_device)
 	if (households~=nil) then
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
-		local favorites = getFavorites(lul_device, householdid)
+		local ok,err  = getFavorites(lul_device, householdid)	-- async
 		subscribeMetadata(lul_device,householdid)
 	end
 	return (households~=nil) and (groups~=nil)
@@ -1350,7 +1446,7 @@ function startupDeferred(lul_device)
 	local iconCode = luup.variable_set(ALTSonos_SERVICE, "IconCode", 0, lul_device)
 	local debugmode = getSetVariable(ALTSonos_SERVICE, "Debug", lul_device, "0")	
 	local oldversion = getSetVariable(ALTSonos_SERVICE, "Version", lul_device, version)
-	local authurl = string.format("http://%s/port_3480/data_request?id=lr_DENON_Handler&command=AuthorizationCB&DeviceNum=%s",ip,lul_device)
+	local authurl = string.format("http://%s/port_3480/data_request?id=lr_ALTSonos_Handler&command=AuthorizationCB&DeviceNum=%s",ip,lul_device)
 	getSetVariable(ALTSonos_SERVICE, "VeraOAuthCBUrl", lul_device, authurl)
 	local cfauthurl = ""
 	getSetVariable(ALTSonos_SERVICE, "CloudFunctionAuthUrl", lul_device, cfauthurl)
