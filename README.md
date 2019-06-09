@@ -33,6 +33,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.22 : loadStreamUrl will select the player able to do AudioClip in a group if it exists
 - 0.23 : AudioClip accepts a volume parameter so adding support for this parameter and simplify the implementation for the TTS / LoadStreamUrl to use audioclip immediately when possible in selected group or player
 - 0.24 : bug fix with AudioCLip method when receiving an empty duration
+- 0.25 : Use of http asynchronous calls to improve performances
 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
