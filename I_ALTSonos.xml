@@ -35,7 +35,7 @@
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>SetVolumeRelative</name>
 			<job>
-			setVolumeRelative(lul_device, lul_settings.groupID_playerID, lul_settings.volumeDelta)
+			setVolumeRelativeAsync(lul_device, lul_settings.groupID_playerID, lul_settings.volumeDelta)
 			return 4,0
 			</job>
 		</action>	
