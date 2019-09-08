@@ -34,6 +34,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.23 : AudioClip accepts a volume parameter so adding support for this parameter and simplify the implementation for the TTS / LoadStreamUrl to use audioclip immediately when possible in selected group or player
 - 0.24 : bug fix with AudioCLip method when receiving an empty duration
 - 0.25 : Use of http asynchronous calls to improve performances
+- 0.26 : add UPNP action LoadPlaylist & Merge favorite and playlist in the group play UI
 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
@@ -54,6 +55,7 @@ in any cases, not authorized for reseller or commercial usage
 - IconCode : 0 or 100 according to status
 - LastVolume : last result of getVolume command
 - Players : discovered list of players
+- Playlists : playlists of the Sonos household
 - RefreshToken : OAuth token standard for Sonos API
 - UI7Check : true on UI7 or openluup
 - Version : version of the plugin
@@ -71,6 +73,7 @@ in any cases, not authorized for reseller or commercial usage
 - AudioClip : trigger the play of a clip (*urlClip*) on a group (*groupID* or "ALL" for all) for a *optional* Duration if specified (*Duration* in msec ) then stop
 - AudioClip2 : trigger the play of a clip via audioClip method on supported players ( AUDIO_CLIP capability ) : Beam, SonosOne, Play5
 - SetGroupMembers : set the members of a group (*groupID*), *playerIDs*( csv of player IDs )
+- LoadPlaylist : select and start playing a given playlist params: *groupID_playerID* , *playlistID*
 
 ### Handler
 - http://<ip>/port_3480/data_request?id=lr_ALTSonos_Handler&command=GetDBInfo&DeviceNum=<devnum>

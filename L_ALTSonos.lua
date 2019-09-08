@@ -1067,23 +1067,6 @@ local function getPlaylists(lul_device,hid)
 	return response,msg
 end
 
--- local function getFavoritesAsync(lul_device, hid)
-	-- local lul_device = lul_device
-
-	-- debug(string.format("getFavoritesAsync(%s,%s)",lul_device,hid))
-	-- local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/favorites",hid)
-	-- local ok,err = SonosHTTPAsync(lul_device,cmd,"GET",nil,nil,nil,
-		-- function( code,favorites )
-			-- for i,fav in pairs(favorites.items) do
-				-- setDBValue(lul_device,0,hid,'favorites',i,'favorite', fav )
-			-- end
-			-- debug(string.format("updated DB %s",json.encode(SonosDB)))
-			-- luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(favorites.items), lul_device)
-		-- end
-	-- )
-	-- return ok,err
--- end
-
 local function getPlaylistsAsync(lul_device,hid)
 	local lul_device = lul_device
 	
