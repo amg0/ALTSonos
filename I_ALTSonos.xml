@@ -81,6 +81,14 @@
 		</action>
 		<action>
 			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
+			<name>LoadPlaylist</name>
+			<job>
+			loadPlaylist(lul_device, lul_settings.groupID_playerID, lul_settings.playlistID)
+			return 4,0
+			</job>
+		</action>
+		<action>
+			<serviceId>urn:upnp-org:serviceId:altsonos1</serviceId>
 			<name>AudioClip2</name>
 			<job>
 			audioClip(lul_device, lul_settings.groupID_playerID, lul_settings.urlClip, lul_settings.Volume )

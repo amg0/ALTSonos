@@ -223,6 +223,9 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 		function getFavorites(household) {
 			return household.favorites || [];
 		}
+		function getPlaylists(household) {
+			return household.playlists || []
+		}
 		function getName(group) {
 			return ( group.core && group.core.name ) ? group.core.name : "no name"
 		};
@@ -268,8 +271,9 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			var volhtml = (group.groupVolume) ? ALTSonos.format(btnVol,idx,group.groupVolume.volume) : '?'
 			return "<span id='altsonos-vol-"+idx+"'>"+volhtml+"</span>"
 		}
-		function getFavoritesMenuitems(favorites) {
-			return jQuery.map(favorites, function (obj, id) {
+		
+		function getFavoritesMenuitems(favorites,playlists) {
+			var result = jQuery.map(favorites, function (obj, id) {
 				fav = obj.favorite;
 				var name =  ''
 				if (fav.imageUrl && fav.imageUrl.length>0){
@@ -279,6 +283,13 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 				var html = '<button data-favid="' + fav.id + '" class="dropdown-item altsonos-btn-fav" type="button">' + name + '</button>';
 				return html 
 			});
+			result = result.concat(jQuery.map(playlists, function (obj, id) {
+				var playlist = obj.playlist
+				var name = '<span>Playlist ' + playlist.name + '</span>'	
+				var html = '<button data-playlistid="' + playlist.id + '" class="dropdown-item altsonos-btn-fav" type="button">' + name + '</button>';
+				return html 
+			}));
+			return result
 		}
 
 		fixUI7();
@@ -290,11 +301,11 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			household = getHousehold(db)
 			groups = getGroups(household);
 			favorites = getFavorites(household);
-			
+			playlists = getPlaylists(household);
 			function getHtml(db) {
 				var players = JSON.parse(get_device_state(deviceID,  ALTSonos.SERVICE, "Players",1));
 				
-				var favmap = getFavoritesMenuitems(favorites)
+				var favmap = getFavoritesMenuitems(favorites,playlists)
 				
 				var playerMap = {}
 				jQuery.each( players, function(idx,player) {
@@ -415,8 +426,11 @@ var ui5 = (splits[0]=="1" && splits[1]<="5");
 			}
 			function _onFav(e) {
 				var favid = jQuery(this).data("favid")
+				var playlistid = jQuery(this).data("playlistid")
 				var gid = jQuery(this).closest('.dropdown').data('gid')
-				var url = buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID_playerID:gid,favID:favid})
+				var url = (favid) 
+					? buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadFavorite",{groupID_playerID:gid,favID:favid})
+					: buildUPnPActionUrl(deviceID,ALTSonos.SERVICE,"LoadPlaylist",{groupID_playerID:gid,playlistID:playlistid})
 				jQuery.get(url)
 			}
 			function _onSeeGroup(e) {

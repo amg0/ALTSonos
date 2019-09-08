@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.25"
+local version		= "v0.26"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -983,6 +983,21 @@ local function loadFavorites(lul_device, gid, fid)
 	return response,msg
 end
 
+local function loadPlaylist(lul_device, gid, playlistid)
+	debug(string.format("loadPlaylist(%s,%s,%s)",lul_device,gid,playlistid))
+	gid = resolveGroup( gid )
+	debug(string.format("corrected groupID:%s",gid))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/groups/%s/playlists",gid)
+	local body = json.encode({
+		playlistId=playlistid,
+		playOnCompletion=true
+	})
+	local response,msg = SonosHTTP(lul_device,cmd,"POST",body,nil,'application/json')
+
+	resetRefreshMetadataLoop(lul_device)
+	return response,msg
+end
+
 local function audioClip(lul_device, pid, urlClip, volume )
 -- volume, nil or between 0 and 100
 	debug(string.format("audioClip(%s,%s,%s)",lul_device, pid, urlClip))
@@ -1050,6 +1065,40 @@ local function getPlaylists(lul_device,hid)
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/playlists",hid)
 	local response,msg = SonosHTTP(lul_device,cmd,"GET")
 	return response,msg
+end
+
+-- local function getFavoritesAsync(lul_device, hid)
+	-- local lul_device = lul_device
+
+	-- debug(string.format("getFavoritesAsync(%s,%s)",lul_device,hid))
+	-- local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/favorites",hid)
+	-- local ok,err = SonosHTTPAsync(lul_device,cmd,"GET",nil,nil,nil,
+		-- function( code,favorites )
+			-- for i,fav in pairs(favorites.items) do
+				-- setDBValue(lul_device,0,hid,'favorites',i,'favorite', fav )
+			-- end
+			-- debug(string.format("updated DB %s",json.encode(SonosDB)))
+			-- luup.variable_set(ALTSonos_SERVICE, "Favorites", json.encode(favorites.items), lul_device)
+		-- end
+	-- )
+	-- return ok,err
+-- end
+
+local function getPlaylistsAsync(lul_device,hid)
+	local lul_device = lul_device
+	
+	debug(string.format("getPlaylistsAsync(%s,%s)",lul_device, hid ))
+	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/playlists",hid)
+	local ok,err = SonosHTTPAsync(lul_device,cmd,"GET",nil,nil,nil,
+		function( code,playlists )
+			for i,playlist in pairs(playlists.playlists) do
+				setDBValue(lul_device,0,hid,'playlists',i,'playlist', playlist )
+			end
+			debug(string.format("updated DB %s",json.encode(SonosDB)))
+			luup.variable_set(ALTSonos_SERVICE, "Playlists", json.encode(playlists.playlists), lul_device)
+		end
+	)
+	return ok,err
 end
 
 local function createSession(lul_device, gid )
@@ -1412,6 +1461,7 @@ function syncDevices(lul_device)
 		local householdid = households[1].id
 		local groups = getGroups(lul_device, householdid)
 		local ok,err  = getFavoritesAsync(lul_device, householdid)	-- async
+		ok,err = getPlaylistsAsync( lul_device, householdid)
 		subscribeMetadata(lul_device,householdid)
 	end
 	return (households~=nil) and (groups~=nil)
@@ -1437,6 +1487,7 @@ function startupDeferred(lul_device)
 	getSetVariable(ALTSonos_SERVICE, "Players", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Households", lul_device, "")
 	getSetVariable(ALTSonos_SERVICE, "Favorites", lul_device, "")
+	getSetVariable(ALTSonos_SERVICE, "Playlists", lul_device, "")
 
 		
 	if (debugmode=="1") then

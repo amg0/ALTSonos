@@ -166,6 +166,21 @@
             </argumentList>
 		</action>	
 		<action>
+			<name>LoadPlaylist</name>
+            <argumentList>
+			<argument>
+				<name>groupID_playerID</name>
+				<direction>in</direction>
+				<relatedStateVariable>groupid_playerid</relatedStateVariable>
+			</argument>
+			<argument>
+				<name>playlistID</name>
+				<direction>in</direction>
+				<relatedStateVariable>playlistid</relatedStateVariable>
+			</argument>
+            </argumentList>
+		</action>	
+		<action>
 			<name>LoadStreamUrl</name>
             <argumentList>
 			<argument>
