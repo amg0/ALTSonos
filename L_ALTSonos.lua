@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.26"
+local version		= "v0.27"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -595,7 +595,7 @@ function SonosHTTPAsync(lul_device,path,verb,body,headers,content_type,request_c
 	local url = "https://" .. path
 	local body = body or ""
 	local token = luup.variable_get(ALTSonos_SERVICE, "AccessToken", lul_device)	
-	local content_type = content_type or "application/x-www-form-urlencoded"
+	local content_type = content_type or "application/json" -- or "application/x-www-form-urlencoded"
 	local headers = headers or {}
 	
 	debug(string.format("SonosHTTPAsync(%s,%s,%s,%s,%s,%s)",lul_device,path,verb,body,json.encode(headers),content_type))
@@ -632,7 +632,7 @@ function SonosHTTP(lul_device,path,verb,body,b64credential,contenttype,headers)
 	local verb = verb or "GET"
 	local url = "https://" .. path
 	body = body or ""
-	contenttype = contenttype or "application/x-www-form-urlencoded"
+	contenttype = contenttype or "application/json" -- or "application/x-www-form-urlencoded"
 	headers = headers or {}
 
 	if (b64credential==nil) then

@@ -35,6 +35,7 @@ in any cases, not authorized for reseller or commercial usage
 - 0.24 : bug fix with AudioCLip method when receiving an empty duration
 - 0.25 : Use of http asynchronous calls to improve performances
 - 0.26 : add UPNP action LoadPlaylist & Merge favorite and playlist in the group play UI
+- 0.27 : bugfix : Sonos forces "application/json" content type
 
 :boom: Warning : you have to update manually the gcloud part as the plugin evolves. a red badge will be shown in the settings page if an update is needed
 
