@@ -581,7 +581,7 @@ local function refreshToken( lul_device )
 	local refresh_token = luup.variable_get(ALTSonos_SERVICE, "RefreshToken", lul_device)
 	local body = string.format('grant_type=refresh_token&refresh_token=%s',refresh_token)
 	
-	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
+	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential,"application/x-www-form-urlencoded")
 	if (response ~=nil ) then
 		luup.variable_set(ALTSonos_SERVICE, "RefreshToken", response.refresh_token, lul_device)
 		luup.variable_set(ALTSonos_SERVICE, "AccessToken", response.access_token, lul_device)
@@ -700,7 +700,7 @@ local function onAuthorizationCallback( lul_device, AuthCode)
 	local uri = modurl.escape( cfauth )
 	local body = string.format('grant_type=authorization_code&code=%s&redirect_uri=%s',AuthCode,uri)
 	
-	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential)
+	local response,msg = SonosHTTP(lul_device,"api.sonos.com/login/v3/oauth/access","POST",body,b64credential,"application/x-www-form-urlencoded")
 	if (response ~=nil ) then
 		luup.variable_set(ALTSonos_SERVICE, "RefreshToken", response.refresh_token, lul_device)
 		luup.variable_set(ALTSonos_SERVICE, "AccessToken", response.access_token, lul_device)
