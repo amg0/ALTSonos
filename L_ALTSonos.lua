@@ -10,7 +10,7 @@ local MSG_CLASS		= "ALTSonos"
 local ALTSonos_SERVICE	= "urn:upnp-org:serviceId:altsonos1"
 local devicetype	= "urn:schemas-upnp-org:device:altsonos:1"
 local DEBUG_MODE	= false -- controlled by UPNP action
-local version		= "v0.27"
+local version		= "v0.28"
 local JSON_FILE = "D_ALTSonos.json"
 local UI7_JSON_FILE = "D_ALTSonos_UI7.json"
 local this_device = nil
@@ -713,7 +713,11 @@ end
 function getGroups(lul_device, hid )
 	debug(string.format("getGroups(%s,%s)",lul_device,hid))
 	local cmd = string.format("api.ws.sonos.com/control/api/v1/households/%s/groups",hid)
-	local response,msg = SonosHTTP(lul_device,cmd,"GET")
+	-- according to doc Jan 2021: we need householdId in header
+	-- SonosHTTP(lul_device,path,verb,body,b64credential,contenttype,headers)
+	local headers={}
+	headers["householdId"] = hid
+	local response,msg = SonosHTTP(lul_device,cmd,"GET",nil,nil,nil,headers)
 	if (response ~=nil ) then
 		local updatedGroups= {} -- = SonosDB[hid].groupId
 		for i,grp in pairs(response.groups) do
